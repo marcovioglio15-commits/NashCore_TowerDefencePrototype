@@ -12,8 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 768257deda3d0094ebd46356003ffad4, type: 3}
   m_Name: PlayAreaSO
   m_EditorClassIdentifier: 
-  referenceWidth: 1920
-  referenceHeight: 1080
+  mobileReferenceWidth: 1080
+  mobileReferenceHeight: 1920
+  desktopReferenceWidth: 1920
+  desktopReferenceHeight: 1080
+  autoSelectByDeviceType: 1
+  forcedProfile: 1
+  editorPreviewProfile: 0
   forceStrictPlayArea: 1
   allowRuntimeRecalculation: 1
   resolutionCheckInterval: 0.75
