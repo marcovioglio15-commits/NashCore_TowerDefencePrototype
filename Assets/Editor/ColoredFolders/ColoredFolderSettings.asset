@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 497eb1cde56d00f459687a3f0f3c5bcb, type: 3}
+  m_Name: ColoredFolderSettings
+  m_EditorClassIdentifier: 
+  folderPaths:
+  - Assets/Scenes
+  - Assets/Scripts
+  - Assets/Scripts/Utils
+  - Assets/Scripts/Utils/Basic Extensions
+  - Assets/Scripts/Utils/ConsoleToGui
+  - Assets/Scripts/Utils/Singleton
+  folderColors:
+  - {r: 0.8862745, g: 0.19739154, b: 0.07843135, a: 0}
+  - {r: 0.8773585, g: 0.58444375, b: 0.053800307, a: 0}
+  - {r: 0.8773585, g: 0.58444375, b: 0.053800307, a: 0}
+  - {r: 0.8773585, g: 0.58444375, b: 0.053800307, a: 0}
+  - {r: 0.8773585, g: 0.58444375, b: 0.053800307, a: 0}
+  - {r: 0.8773585, g: 0.58444375, b: 0.053800307, a: 0}
+  folderApplyModes: 020000000200000002000000020000000200000002000000
+  autoInheritColors: 1
