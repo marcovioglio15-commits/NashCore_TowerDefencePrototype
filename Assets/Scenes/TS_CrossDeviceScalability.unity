@@ -2363,7 +2363,7 @@ MonoBehaviour:
   gridSizeX: 10
   gridSizeZ: 10
   originOffset: {x: 0, y: 0, z: 0}
-  cellSize: 1
+  cellSize: 10.01
   walkableNodes: []
   buildableNodes: []
   enemyGoalCells: []
