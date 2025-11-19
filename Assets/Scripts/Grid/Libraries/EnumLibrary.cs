@@ -11,3 +11,9 @@ namespace Grid
         IsEnemyGoal = 1 << 4     // Node represents an enemy goal cell.
     }
 }
+
+public enum TurretFirePattern
+{
+    Consecutive,
+    Cone
+}

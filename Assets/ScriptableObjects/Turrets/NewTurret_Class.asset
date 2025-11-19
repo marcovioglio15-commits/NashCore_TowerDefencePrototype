@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8bf5d7b23271204f84f3adf1da36685, type: 3}
+  m_Name: NewTurret_Class
+  m_EditorClassIdentifier: 
+  key: turret_default
+  displayName: New Turret
+  description: 
+  icon: {fileID: 0}
+  turretPrefab: {fileID: 0}
+  turretPool: {fileID: 0}
+  projectile: {fileID: 0}
+  projectilePool: {fileID: 0}
+  durability:
+    health: 150
+    armor: 10
+    magicResistance: 8
+    passiveRegenPerSecond: 1.5
+  targeting:
+    range: 16
+    turnRate: 240
+    deadZoneRadius: 0.5
+    retargetInterval: 0.75
+  automaticFire:
+    cadenceSeconds: 0.45
+    projectilesPerShot: 3
+    interProjectileDelay: 0.08
+    pattern: 1
+    coneAngleDegrees: 18
+  freeAimFire:
+    cadenceSeconds: 0.25
+    projectilesPerShot: 1
+    interProjectileDelay: 0
+    pattern: 0
+    coneAngleDegrees: 0
+  modeSwitchSeconds: 1
+  economy:
+    buildCost: 120
+    upkeepCost: 2
+    salvageDelay: 1.5
+    refundRatio: 0.85
+  sustain:
+    magazineSize: 12
+    reloadSeconds: 3.5
+    maxHeat: 0.45
+    heatDissipationSeconds: 0.65
+  placement:
+    footprintRadius: 0.45
+    clearance: 0.08
+    heightOffset: 0.15
+    alignWithGrid: 1

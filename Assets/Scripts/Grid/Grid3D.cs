@@ -236,6 +236,70 @@ namespace Grid
             return x + z * gridSizeX;
         }
 
+        /// <summary>
+        /// Returns world coordinates for the provided grid coordinate.
+        /// </summary>
+        public Vector3 GridToWorld(Vector2Int coords)
+        {
+            return GridToWorld(coords.x, coords.y);
+        }
+
+        /// <summary>
+        /// Safe accessor that returns the node at coordinates when available.
+        /// </summary>
+        public bool TryGetNode(Vector2Int coords, out GridNode node)
+        {
+            node = null;
+            InitializeGrid();
+
+            if (nodes == null)
+                return false;
+
+            if (coords.x < 0 || coords.y < 0)
+                return false;
+
+            if (coords.x >= gridSizeX || coords.y >= gridSizeZ)
+                return false;
+
+            int index = ToIndex(coords.x, coords.y);
+            node = nodes[index];
+            return node != null;
+        }
+
+        /// <summary>
+        /// Returns true when grid bounds contain the coordinate.
+        /// </summary>
+        public bool IsWithinBounds(Vector2Int coords)
+        {
+            return coords.x >= 0 && coords.y >= 0 && coords.x < gridSizeX && coords.y < gridSizeZ;
+        }
+
+        /// <summary>
+        /// Evaluates whether a node can host a turret respecting Buildable and HasTower flags.
+        /// </summary>
+        public bool IsBuildable(Vector2Int coords)
+        {
+            GridNode node;
+            if (!TryGetNode(coords, out node))
+                return false;
+
+            bool available = node.Is(NodeState.Buildable) && !node.Is(NodeState.HasTower);
+            return available;
+        }
+
+        /// <summary>
+        /// Sets the HasTower flag on a node to keep placement state in sync.
+        /// </summary>
+        public bool SetTowerState(Vector2Int coords, bool hasTower)
+        {
+            GridNode node;
+            if (!TryGetNode(coords, out node))
+                return false;
+
+            node.SetState(NodeState.HasTower, hasTower);
+            return true;
+        }
+
         public Vector3 GridToWorld(int x, int z)
         {
             float wx = Origin.x + (x + 0.5f) * cellSize;
