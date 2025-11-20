@@ -87,6 +87,7 @@ namespace Grid
 
         // Flat array of nodes.
         [SerializeField] private GridNode[] graph;
+        private bool gridInitialized;
 
         #endregion
 
@@ -147,49 +148,53 @@ namespace Grid
         /// </summary>
         private void InitializeGrid()
         {
-            int total = gridSizeX * gridSizeZ;
+            if (gridSizeX < 1 || gridSizeZ < 1)
+            {
+                graph = System.Array.Empty<GridNode>();
+                gridInitialized = true;
+                return;
+            }
 
-            if (graph == null || graph.Length != total)
-                graph = new GridNode[total];
+            int total = gridSizeX * gridSizeZ;
+            graph = new GridNode[total];
 
             for (int z = 0; z < gridSizeZ; z++)
             {
                 for (int x = 0; x < gridSizeX; x++)
                 {
                     int index = ToIndex(x, z);
-                    Vector3 pos = GridToWorld(x, z);
+                    NodeState staticState = ResolveStaticState(x, z);
+                    Vector3 position = GridToWorld(x, z);
+                    graph[index] = new GridNode(index, x, z, position, staticState);
 
-                    NodeState staticState = 0;
+                    GridNode node = graph[index];
 
-                    if (Contains(walkableNodes, x, z))
-                        staticState |= NodeState.Walkable;
-
-                    if (Contains(buildableNodes, x, z))
-                        staticState |= NodeState.Buildable;
-
-                    if (Contains(enemyGoalCells, x, z))
-                        staticState |= NodeState.IsEnemyGoal;
-
-                    if (graph[index] == null)
-                        graph[index] = new GridNode(index, x, z, pos, staticState);
-                    else
-                        graph[index].SetWorldPosition(pos);
-
-                    graph[index].SetState(NodeState.Walkable, (staticState & NodeState.Walkable) != 0);
-                    graph[index].SetState(NodeState.Buildable, (staticState & NodeState.Buildable) != 0);
-                    graph[index].SetState(NodeState.IsEnemyGoal, (staticState & NodeState.IsEnemyGoal) != 0);
-
-                    int weight = 1;
-                    if (!graph[index].Is(NodeState.Walkable))
-                        weight = int.MaxValue;
+                    if (node == null)
+                        continue;
 
                     if (x > 0)
-                        graph[index].AddEdge(graph[ToIndex(x - 1, z)], weight);
+                    {
+                        GridNode left = graph[ToIndex(x - 1, z)];
+                        if (left != null)
+                        {
+                            int weight = ResolveEdgeWeight(node, left);
+                            node.AddEdge(left, weight);
+                        }
+                    }
 
                     if (z > 0)
-                        graph[index].AddEdge(graph[ToIndex(x, z - 1)], weight);
+                    {
+                        GridNode down = graph[ToIndex(x, z - 1)];
+                        if (down != null)
+                        {
+                            int weight = ResolveEdgeWeight(node, down);
+                            node.AddEdge(down, weight);
+                        }
+                    }
                 }
             }
+
+            gridInitialized = true;
         }
 
         #endregion
@@ -247,6 +252,37 @@ namespace Grid
         }
 
         /// <summary>
+        /// Aggregates static flags assigned through the serialized arrays.
+        /// </summary>
+        private NodeState ResolveStaticState(int x, int z)
+        {
+            NodeState state = NodeState.Default;
+
+            if (Contains(walkableNodes, x, z))
+                state |= NodeState.Walkable;
+
+            if (Contains(buildableNodes, x, z))
+                state |= NodeState.Buildable;
+
+            if (Contains(enemyGoalCells, x, z))
+                state |= NodeState.IsEnemyGoal;
+
+            return state;
+        }
+
+        /// <summary>
+        /// Computes an edge weight honoring walkability across both nodes.
+        /// </summary>
+        private int ResolveEdgeWeight(GridNode origin, GridNode destination)
+        {
+            if (origin == null || destination == null)
+                return int.MaxValue;
+
+            bool traversable = origin.Is(NodeState.Walkable) && destination.Is(NodeState.Walkable);
+            return traversable ? 1 : int.MaxValue;
+        }
+
+        /// <summary>
         /// Returns world coordinates for the provided grid coordinate.
         /// </summary>
         public Vector3 GridToWorld(Vector2Int coords)
@@ -260,7 +296,7 @@ namespace Grid
         public bool TryGetNode(Vector2Int coords, out GridNode node)
         {
             node = null;
-            InitializeGrid();
+            EnsureGridInitialized();
 
             if (graph == null)
                 return false;
@@ -353,7 +389,7 @@ namespace Grid
             if (!drawGridGizmos)
                 return;
 
-            InitializeGrid();
+            EnsureGridInitialized();
 
             if (graph == null)
                 return;
@@ -455,6 +491,20 @@ namespace Grid
             Gizmos.color = old;
         }
 
+        #endregion
+
+        #region Internal
+        /// <summary>
+        /// Ensures the grid data exists before runtime queries mutate it.
+        /// </summary>
+        private void EnsureGridInitialized()
+        {
+            if (gridInitialized && graph != null && graph.Length == gridSizeX * gridSizeZ)
+                return;
+
+            gridInitialized = false;
+            InitializeGrid();
+        }
         #endregion
     }
 }
