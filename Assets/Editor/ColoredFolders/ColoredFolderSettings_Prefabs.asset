@@ -18,5 +18,5 @@ MonoBehaviour:
   folderColors:
   - {r: 0.77254903, g: 0.12941174, b: 0.6277426, a: 0}
   - {r: 0.9245283, g: 0.3532396, b: 0.807461, a: 0}
-  folderApplyModes: 0200000002000000
+  folderApplyModes: 0200000001000000
   autoInheritColors: 0

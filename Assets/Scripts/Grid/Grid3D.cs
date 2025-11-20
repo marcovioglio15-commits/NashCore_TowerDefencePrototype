@@ -86,7 +86,7 @@ namespace Grid
         #region Runtime
 
         // Flat array of nodes.
-        private GridNode[] nodes;
+        [SerializeField] private GridNode[] graph;
 
         #endregion
 
@@ -149,8 +149,8 @@ namespace Grid
         {
             int total = gridSizeX * gridSizeZ;
 
-            if (nodes == null || nodes.Length != total)
-                nodes = new GridNode[total];
+            if (graph == null || graph.Length != total)
+                graph = new GridNode[total];
 
             for (int z = 0; z < gridSizeZ; z++)
             {
@@ -170,14 +170,24 @@ namespace Grid
                     if (Contains(enemyGoalCells, x, z))
                         staticState |= NodeState.IsEnemyGoal;
 
-                    if (nodes[index] == null)
-                        nodes[index] = new GridNode(index, x, z, pos, staticState);
+                    if (graph[index] == null)
+                        graph[index] = new GridNode(index, x, z, pos, staticState);
                     else
-                        nodes[index].SetWorldPosition(pos);
+                        graph[index].SetWorldPosition(pos);
 
-                    nodes[index].SetState(NodeState.Walkable, (staticState & NodeState.Walkable) != 0);
-                    nodes[index].SetState(NodeState.Buildable, (staticState & NodeState.Buildable) != 0);
-                    nodes[index].SetState(NodeState.IsEnemyGoal, (staticState & NodeState.IsEnemyGoal) != 0);
+                    graph[index].SetState(NodeState.Walkable, (staticState & NodeState.Walkable) != 0);
+                    graph[index].SetState(NodeState.Buildable, (staticState & NodeState.Buildable) != 0);
+                    graph[index].SetState(NodeState.IsEnemyGoal, (staticState & NodeState.IsEnemyGoal) != 0);
+
+                    int weight = 1;
+                    if (!graph[index].Is(NodeState.Walkable))
+                        weight = int.MaxValue;
+
+                    if (x > 0)
+                        graph[index].AddEdge(graph[ToIndex(x - 1, z)], weight);
+
+                    if (z > 0)
+                        graph[index].AddEdge(graph[ToIndex(x, z - 1)], weight);
                 }
             }
         }
@@ -252,7 +262,7 @@ namespace Grid
             node = null;
             InitializeGrid();
 
-            if (nodes == null)
+            if (graph == null)
                 return false;
 
             if (coords.x < 0 || coords.y < 0)
@@ -262,7 +272,7 @@ namespace Grid
                 return false;
 
             int index = ToIndex(coords.x, coords.y);
-            node = nodes[index];
+            node = graph[index];
             return node != null;
         }
 
@@ -345,7 +355,7 @@ namespace Grid
 
             InitializeGrid();
 
-            if (nodes == null)
+            if (graph == null)
                 return;
 
             Color old = Gizmos.color;
@@ -356,7 +366,8 @@ namespace Grid
             {
                 for (int x = 0; x < gridSizeX; x++)
                 {
-                    GridNode node = nodes[ToIndex(x, z)];
+                    GridNode node = graph[ToIndex(x, z)];
+
                     Vector3 basePos = node.WorldPosition;
                     Vector3 size = new Vector3(cellSize, 0.02f, cellSize);
 
@@ -430,6 +441,13 @@ namespace Grid
                         UnityEditor.Handles.color = topLabelColor;
                         UnityEditor.Handles.Label(pos, label);
                     }
+
+                    List<GridEdge> tempEdge = node.GetEdges();
+                    Gizmos.color = Color.red;
+
+                    for (int i = 0; i < tempEdge.Count; ++i)
+                        Gizmos.DrawLine(node.WorldPosition, tempEdge[i].GetOppositeNode(node).WorldPosition);
+
 #endif
                 }
             }

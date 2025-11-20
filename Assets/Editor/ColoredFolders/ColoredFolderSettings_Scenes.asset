@@ -16,5 +16,5 @@ MonoBehaviour:
   - Assets/Scenes
   folderColors:
   - {r: 0.12771447, g: 0.7127971, b: 0.7735849, a: 0}
-  folderApplyModes: 02000000
+  folderApplyModes: 01000000
   autoInheritColors: 0

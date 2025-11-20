@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Grid
@@ -15,6 +16,7 @@ namespace Grid
 
         // Grid coordinate X.
         public int X { get; private set; }
+        private readonly List<GridEdge> edges;
 
         // Grid coordinate Z.
         public int Z { get; private set; }
@@ -39,10 +41,47 @@ namespace Grid
             Z = z;
             WorldPosition = worldPosition;
             State = initialState;
+            edges = new List<GridEdge>();
         }
 
         #endregion
 
+        public void AddEdge(in GridNode toAttach, int weight = 1)
+        {
+            if (toAttach == null)
+            {
+                Debug.LogError("Given node cannot be null.");
+                return;
+            }
+
+            for (int i = 0; i < edges.Count; i++)
+                if (edges[i].GetOppositeNode(this) == toAttach)
+                {
+                    Debug.LogError("Edge already exist!");
+                    return;
+                }
+
+            GridEdge edgeToAdd = new GridEdge(this, toAttach, weight);
+            edges.Add(edgeToAdd);
+            toAttach.edges.Add(edgeToAdd);
+        }
+
+        public void RemoveEdge(in GridNode toDetach)
+        {
+            for (int i = 0; i < edges.Count; i++)
+                if (edges[i].GetOppositeNode(this) == toDetach)
+                {
+                    edges.Remove(edges[i]);
+                    toDetach.edges.Remove(edges[i]);
+                    return;
+                }
+
+            Debug.LogError("Edge already exist!");
+        }
+        public List<GridEdge> GetEdges()
+        {
+            return edges;
+        }
         #region State Helpers
 
         /// <summary>
