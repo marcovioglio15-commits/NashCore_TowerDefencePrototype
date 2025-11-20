@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PC_Linear
   m_EditorClassIdentifier: 
   key: projectile_default
-  icon: {fileID: 21300000, guid: 91f687269d00d8548a0c2a0e7e4736e1, type: 3}
+  icon: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
   projectilePrefab: {fileID: 6394636386828153362, guid: ce6d44e36cb030841845097da1ccf13a, type: 3}
   pool: {fileID: 11400000, guid: 4e4864ca9534c6f41a5e8d6f2f1e6afd, type: 2}
   damage: 12

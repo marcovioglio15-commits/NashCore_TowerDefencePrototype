@@ -1029,6 +1029,14 @@ PrefabInstance:
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
+      propertyPath: enemyGoalCells.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
+      propertyPath: enemySpawnCells.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: buildableNodes.Array.data[1].x
       value: 2
       objectReference: {fileID: 0}

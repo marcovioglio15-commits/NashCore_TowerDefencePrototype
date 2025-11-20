@@ -6,8 +6,8 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/TestingScenes/TS_CrossDeviceScalability.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/Scenes/TestingScenes/TS_TowersPositioning.unity
+    guid: 787ac04e5762c234d902c683e36eddd6
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 7b043ce73ed58b34f800bc10a3f63aeb, type: 3}
   m_UseUCBPForAssetBundles: 0
