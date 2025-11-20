@@ -23,10 +23,12 @@ public static class EventsManager
     public static Action<Vector2> BuildableDragEnded;
     public static Action<BuildPreviewData> BuildablePreviewUpdated;
     public static Action<BuildPlacementResult> BuildablePlacementResolved;
+    public static Action<PooledTurret> TurretPerspectiveRequested;
     #endregion
     #endregion
 
     #region Invokes
+    #region Inputs
     public static void InvokeDrag(Vector2 delta) => Drag?.Invoke(delta);
     public static void InvokeSwipe(Vector2 delta) => Swipe?.Invoke(delta);
     public static void InvokeHold() => Hold?.Invoke();
@@ -39,6 +41,8 @@ public static class EventsManager
     public static void InvokeBuildableDragEnded(Vector2 screenPosition)=> BuildableDragEnded?.Invoke(screenPosition);
     public static void InvokeBuildablePreviewUpdated(BuildPreviewData preview)=> BuildablePreviewUpdated?.Invoke(preview);
     public static void InvokeBuildablePlacementResolved(BuildPlacementResult result)=> BuildablePlacementResolved?.Invoke(result);
+    public static void InvokeTurretPerspectiveRequested(PooledTurret turret)=> TurretPerspectiveRequested?.Invoke(turret);
+    #endregion
     #endregion
 
 }

@@ -33,11 +33,21 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
     [SerializeField] private Color validDragColor = Color.white;
     [Tooltip("Color applied to the drag preview when no valid cell is available.")]
     [SerializeField] private Color invalidDragColor = new Color(1f, 0.45f, 0.45f, 0.95f);
+
+    [Header("Turret Feedback")]
+    [Tooltip("Camera used to project turret positions while drawing hold indicators.")][SerializeField] private Camera worldSpaceCamera;
+    [Tooltip("Layer hosting the hold indicator widget.")][SerializeField] private RectTransform worldIndicatorLayer;
+    [Tooltip("Prefab used to render hold progress above turrets.")][SerializeField] private Image holdIndicatorPrefab;
+    [Tooltip("World offset applied when positioning the hold indicator over turrets.")][SerializeField] private float holdIndicatorHeightOffset = 1.75f;
     #endregion
 
     #region Runtime
     private readonly List<BuildableIconView> activeIcons = new List<BuildableIconView>();
     private bool dragActive;
+    private Image activeHoldIndicator;
+    private RectTransform activeHoldRect;
+    private Transform activeHoldTarget;
+    private bool holdIndicatorActive;
     #endregion
     #endregion
 
@@ -72,6 +82,17 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         EventsManager.BuildableDragEnded -= HandleDragEnded;
         EventsManager.BuildablePreviewUpdated -= HandlePreviewUpdated;
         EventsManager.BuildablePlacementResolved -= HandlePlacementResolved;
+    }
+
+    /// <summary>
+    /// Keeps turret hold indicators aligned with their world targets.
+    /// </summary>
+    private void LateUpdate()
+    {
+        if (!holdIndicatorActive)
+            return;
+
+        UpdateHoldIndicatorPosition();
     }
     #endregion
 
@@ -207,5 +228,91 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         dragPreviewImage.enabled = false;
     }
     #endregion
+
+    #region Turret Hold Feedback
+    /// <summary>
+    /// Updates or instantiates the turret hold indicator using the provided progress value.
+    /// </summary>
+    public void UpdateTurretHoldIndicator(Transform target, float normalizedProgress)
+    {
+        if (target == null)
+        {
+            HideTurretHoldIndicator();
+            return;
+        }
+
+        EnsureHoldIndicatorInstance();
+        if (activeHoldIndicator == null)
+            return;
+
+        activeHoldTarget = target;
+        activeHoldIndicator.fillAmount = Mathf.Clamp01(normalizedProgress);
+        holdIndicatorActive = true;
+        if (!activeHoldIndicator.enabled)
+            activeHoldIndicator.enabled = true;
+
+        UpdateHoldIndicatorPosition();
+    }
+
+    /// <summary>
+    /// Hides the turret hold indicator when no hold gesture is active.
+    /// </summary>
+    public void HideTurretHoldIndicator()
+    {
+        holdIndicatorActive = false;
+        activeHoldTarget = null;
+        if (activeHoldIndicator == null)
+            return;
+
+        activeHoldIndicator.enabled = false;
+    }
+
+    /// <summary>
+    /// Ensures the hold indicator instance exists in the configured overlay.
+    /// </summary>
+    private void EnsureHoldIndicatorInstance()
+    {
+        if (activeHoldIndicator != null)
+            return;
+
+        if (holdIndicatorPrefab == null)
+            return;
+
+        RectTransform layer = worldIndicatorLayer != null ? worldIndicatorLayer : dragLayer;
+        if (layer == null)
+            return;
+
+        activeHoldIndicator = Instantiate(holdIndicatorPrefab, layer);
+        activeHoldRect = activeHoldIndicator.rectTransform;
+        activeHoldIndicator.enabled = false;
+    }
+
+    /// <summary>
+    /// Converts turret world positions to overlay coordinates for the hold indicator.
+    /// </summary>
+    private void UpdateHoldIndicatorPosition()
+    {
+        if (activeHoldRect == null || activeHoldTarget == null)
+            return;
+
+        Camera projectionCamera = worldSpaceCamera != null ? worldSpaceCamera : Camera.main;
+        if (projectionCamera == null)
+            return;
+
+        Vector3 worldPosition = activeHoldTarget.position + Vector3.up * holdIndicatorHeightOffset;
+        Vector3 screenPoint = projectionCamera.WorldToScreenPoint(worldPosition);
+        RectTransform layer = worldIndicatorLayer != null ? worldIndicatorLayer : dragLayer;
+        if (layer == null)
+            return;
+
+        Camera canvasCamera = uiCanvas != null && uiCanvas.renderMode == RenderMode.ScreenSpaceCamera ? uiCanvas.worldCamera : null;
+        Vector2 anchored;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(layer, screenPoint, canvasCamera, out anchored))
+            return;
+
+        activeHoldRect.anchoredPosition = anchored;
+    }
+    #endregion
+
     #endregion
 }
