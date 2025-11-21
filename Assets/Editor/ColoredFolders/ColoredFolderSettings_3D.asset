@@ -31,6 +31,9 @@ MonoBehaviour:
   - Assets/3D/Static Meshes/Terrace Houses
   - Assets/3D/Static Meshes/Terrace Houses/Materials
   - Assets/3D/Static Meshes/Cute Buildings
+  - Assets/3D/SkeletalMeshes
+  - Assets/3D/SkeletalMeshes/Materials
+  - Assets/3D/Animations
   folderColors:
   - {r: 0.5849056, g: 0, b: 0, a: 0}
   - {r: 0.5849056, g: 0, b: 0, a: 0}
@@ -50,5 +53,8 @@ MonoBehaviour:
   - {r: 0.5849056, g: 0, b: 0, a: 0}
   - {r: 0.5849056, g: 0, b: 0, a: 0}
   - {r: 0.5849056, g: 0, b: 0, a: 0}
-  folderApplyModes: 010000000200000001000000020000000100000001000000010000000200000002000000020000000200000002000000020000000200000002000000020000000200000002000000
+  - {r: 0.5849056, g: 0, b: 0, a: 0}
+  - {r: 0.5849056, g: 0, b: 0, a: 0}
+  - {r: 0.5849056, g: 0, b: 0, a: 0}
+  folderApplyModes: 010000000200000001000000020000000100000001000000010000000200000002000000020000000200000002000000020000000200000002000000020000000200000002000000010000000100000001000000
   autoInheritColors: 1
