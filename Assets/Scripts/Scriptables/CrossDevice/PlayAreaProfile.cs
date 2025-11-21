@@ -5,10 +5,10 @@ namespace CrossDeviceScalability
     /// <summary>
     /// Provides reference data used to normalize the play area across devices.
     /// </summary>
-    [CreateAssetMenu(fileName = "PlayAreaProfile", menuName = "CrossDeviceScalability/Play Area Profile")]
+    [CreateAssetMenu(fileName = "PlayAreaProfile", menuName = "Scriptables/CrossDeviceScalability/Play Area Profile")]
     public class PlayAreaProfile : ScriptableObject
     {
-        #region Types
+        #region Nested Types
         public enum OrientationPreference
         {
             Landscape = 0,
