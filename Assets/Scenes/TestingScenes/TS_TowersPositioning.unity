@@ -170,9 +170,9 @@ MonoBehaviour:
   m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 1920, y: 1080}
+  m_ReferenceResolution: {x: 1080, y: 1920}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 0.5
+  m_MatchWidthOrHeight: 1
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -187,10 +187,10 @@ Canvas:
   m_GameObject: {fileID: 21744256}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
-  m_Camera: {fileID: 0}
-  m_PlaneDistance: 100
-  m_PixelPerfect: 0
+  m_RenderMode: 1
+  m_Camera: {fileID: 330585545}
+  m_PlaneDistance: 1
+  m_PixelPerfect: 1
   m_ReceivesEvents: 1
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
@@ -328,9 +328,9 @@ GameObject:
   m_Component:
   - component: {fileID: 330585546}
   - component: {fileID: 330585545}
-  - component: {fileID: 330585548}
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
+  - component: {fileID: 330585548}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -356,7 +356,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -373,15 +373,15 @@ Camera:
   m_LensShift: {x: 0, y: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0.089743614
-    y: 0
-    width: 0.8205128
-    height: 1
+    x: 0
+    y: 0.08928573
+    width: 1
+    height: 0.82142854
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
   orthographic: 0
-  orthographic size: 5
+  orthographic size: 0.609375
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -406,7 +406,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0.38268343, y: 0, z: 0, w: 0.92387956}
-  m_LocalPosition: {x: -0, y: 4.75, z: -7.21}
+  m_LocalPosition: {x: -0, y: 8.66, z: -11.12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -465,15 +465,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 330585543}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bb261d93377d1b74c9a0a0e6e4e694cf, type: 3}
+  m_Script: {fileID: 11500000, guid: c0438d89d7b2a714291fe67412786740, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playAreaDefinition: {fileID: 11400000, guid: 0658e54b8cd207a49ad12d7da36d60fd, type: 2}
+  profile: {fileID: 11400000, guid: fefb82e9b11906a439a3c709a2628cb8, type: 2}
   targetCamera: {fileID: 330585545}
-  enableDebugLog: 0
-  drawReferenceFrustum: 1
-  referenceFrustumDepth: 30
-  referenceFrustumColor: {r: 1, g: 0.75, b: 0.25, a: 0.9}
+  playAreaUIRoot: {fileID: 21744260}
+  canvasScalers:
+  - {fileID: 21744258}
+  barColor: {r: 0, g: 0, b: 0, a: 1}
+  gizmoEnabled: 1
+  gizmoDepth: 12
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
