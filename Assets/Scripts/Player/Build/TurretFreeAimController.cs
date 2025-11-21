@@ -9,6 +9,18 @@ namespace Player.Build
     /// </summary>
     public class TurretFreeAimController : MonoBehaviour
     {
+        #region Nested Types
+        /// <summary>
+        /// Axis processing mode applied to drag and swipe gestures during possession.
+        /// </summary>
+        private enum FreeAimAxisMode
+        {
+            HorizontalOnly,
+            VerticalOnly,
+            HorizontalAndVertical
+        }
+        #endregion
+
         #region Variables And Properties
         #region Serialized Fields
         [Header("Camera")]
@@ -22,14 +34,22 @@ namespace Player.Build
         [SerializeField] private float exitLerpSeconds = 0.35f;
 
         [Header("Rotation")]
+        [Tooltip("Axes interpreted from drag and swipe while controlling a turret.")]
+        [SerializeField] private FreeAimAxisMode axisMode = FreeAimAxisMode.HorizontalAndVertical;
         [Tooltip("Degrees of yaw applied per pixel of horizontal drag or swipe.")]
         [SerializeField] private float yawSensitivity = 0.35f;
+        [Tooltip("Degrees of pitch applied per pixel of vertical drag or swipe.")]
+        [SerializeField] private float pitchSensitivity = 0.35f;
+        [Tooltip("Maximum upward pitch offset allowed relative to the starting orientation.")]
+        [SerializeField] private float pitchUpClampDegrees = 55f;
+        [Tooltip("Maximum downward pitch offset allowed relative to the starting orientation.")]
+        [SerializeField] private float pitchDownClampDegrees = 35f;
         [Tooltip("Maximum yaw offset allowed while possessed, relative to the starting orientation.")] 
         [SerializeField] private float fallbackYawClampDegrees = 110f;
 
         [Header("Firing")]
         [Tooltip("Smallest cadence allowed to process manual tap firing.")] 
-        [SerializeField] private float minTapCadenceSeconds = 0.05f;
+        [SerializeField] private float FireCD = 0.05f;
         [Tooltip("Local offset from the possessed camera used as projectile spawn origin.")] 
         [SerializeField] private Vector3 freeAimProjectileOffset = new Vector3(0f, -0.05f, 0.1f);
 
@@ -55,9 +75,13 @@ namespace Player.Build
         private bool freeAimActive;
         private Quaternion anchorBaseRotation;
         private float currentYawOffset;
+        private float currentPitchOffset;
         private bool turretHiddenDuringFreeAim;
         private Renderer[] cachedTurretRenderers;
+        private bool[] cachedRendererStates;
         private bool uiArmed;
+        private Transform[] yawFollowTargets;
+        private Quaternion[] yawFollowBaseRotations;
         #endregion
         #endregion
 
@@ -129,11 +153,8 @@ namespace Player.Build
             if (turret == null)
                 return;
 
-            if (freeAimActive && turret == activeTurret)
-                return;
-
             if (freeAimActive)
-                ExitFreeAim();
+                return;
 
             BeginFreeAim(turret);
         }
@@ -204,12 +225,16 @@ namespace Player.Build
             activeTurret.SetFreeAimState(true);
             freeAimActive = true;
             fireCooldownTimer = 0f;
-            cachedTurretRenderers = null;
+            cachedTurretRenderers = activeTurret.GetFreeAimRendererSet();
+            cachedRendererStates = null;
             turretHiddenDuringFreeAim = false;
             uiArmed = false;
+            currentYawOffset = 0f;
+            currentPitchOffset = 0f;
             CacheCameraState();
-            StartCameraLerpToTurret();
             CacheAnchorOrientation();
+            CacheYawFollowTargets();
+            StartCameraLerpToTurret();
             EventsManager.InvokeTurretFreeAimStarted(activeTurret);
         }
 
@@ -227,10 +252,15 @@ namespace Player.Build
             activeTurret = null;
             fireCooldownTimer = 0f;
             currentYawOffset = 0f;
+            currentPitchOffset = 0f;
             uiArmed = false;
             StartCameraReturn();
             EventsManager.InvokeTurretFreeAimEnded(turretToRelease);
             ShowTurretRenderers();
+            cachedTurretRenderers = null;
+            cachedRendererStates = null;
+            yawFollowTargets = null;
+            yawFollowBaseRotations = null;
         }
 
         /// <summary>
@@ -246,6 +276,10 @@ namespace Player.Build
             freeAimActive = false;
             fireCooldownTimer = 0f;
             ShowTurretRenderers();
+            cachedTurretRenderers = null;
+            cachedRendererStates = null;
+            yawFollowTargets = null;
+            yawFollowBaseRotations = null;
         }
         #endregion
 
@@ -260,13 +294,34 @@ namespace Player.Build
 
             TurretStatSnapshot stats = activeTurret.ActiveStats;
             float maxDegrees = stats.TurnRate * Time.deltaTime;
-            float clampHalf = ResolveYawClampHalf();
-            float yawDelta = delta.x * yawSensitivity;
+            bool processYaw = ShouldProcessYaw();
+            bool processPitch = ShouldProcessPitch();
+            float yawDelta = processYaw ? delta.x * yawSensitivity : 0f;
+            float pitchDelta = processPitch ? -delta.y * pitchSensitivity : 0f;
             if (maxDegrees > 0f)
-                yawDelta = Mathf.Clamp(yawDelta, -maxDegrees, maxDegrees);
+            {
+                if (processYaw)
+                    yawDelta = Mathf.Clamp(yawDelta, -maxDegrees, maxDegrees);
+                if (processPitch)
+                    pitchDelta = Mathf.Clamp(pitchDelta, -maxDegrees, maxDegrees);
+            }
 
-            currentYawOffset = Mathf.Clamp(currentYawOffset + yawDelta, -clampHalf, clampHalf);
-            ApplyCameraYaw();
+            if (processYaw)
+            {
+                float clampHalf = ResolveYawClampHalf();
+                currentYawOffset = Mathf.Clamp(currentYawOffset + yawDelta, -clampHalf, clampHalf);
+            }
+
+            if (processPitch)
+            {
+                Vector2 pitchClamp = ResolvePitchClamp();
+                float minPitch = -pitchClamp.x;
+                float maxPitch = pitchClamp.y;
+                currentPitchOffset = Mathf.Clamp(currentPitchOffset + pitchDelta, minPitch, maxPitch);
+            }
+
+            if (processYaw || processPitch)
+                ApplyCameraOffsets();
         }
 
         /// <summary>
@@ -281,7 +336,7 @@ namespace Player.Build
                 return;
 
             TurretStatSnapshot stats = activeTurret.ActiveStats;
-            float cadence = Mathf.Max(minTapCadenceSeconds, stats.FreeAimCadenceSeconds);
+            float cadence = Mathf.Max(FireCD, stats.FreeAimCadenceSeconds);
             fireCooldownTimer = cadence;
             StartCoroutine(FireBurstRoutine(stats));
         }
@@ -300,10 +355,11 @@ namespace Player.Build
             WaitForSeconds delay = useDelay ? new WaitForSeconds(stats.FreeAimInterProjectileDelay) : null;
             Vector3 forward = ResolveFireForward();
             Transform spawnOrigin = ResolveFreeAimSpawnOrigin();
+            Vector3 upAxis = ResolveFireUpAxis();
 
             for (int i = 0; i < projectiles; i++)
             {
-                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, stats.FreeAimConeAngleDegrees, i, projectiles);
+                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, stats.FreeAimConeAngleDegrees, i, projectiles, upAxis);
                 TurretFireUtility.SpawnProjectile(activeTurret, direction, spawnOrigin, freeAimProjectileOffset);
 
                 bool shouldDelay = useDelay && i < projectiles - 1;
@@ -401,7 +457,7 @@ namespace Player.Build
             Vector3 finalPosition = anchor.position + anchor.TransformVector(cameraLocalOffset);
             cameraTransform.SetPositionAndRotation(finalPosition, anchor.rotation);
             cameraTransform.SetParent(anchor, true);
-            ApplyCameraYaw();
+            ApplyCameraOffsets();
             cameraRoutine = null;
         }
 
@@ -478,27 +534,116 @@ namespace Player.Build
 
             anchorBaseRotation = anchor.rotation;
             currentYawOffset = 0f;
+            currentPitchOffset = 0f;
         }
 
         /// <summary>
-        /// Applies the current yaw offset to the camera without rotating the turret.
+        /// Applies yaw and pitch offsets to the camera and aligns visible turret parts horizontally.
         /// </summary>
-        private void ApplyCameraYaw()
+        private void ApplyCameraOffsets()
         {
             if (targetCamera == null)
                 return;
 
             Transform cameraTransform = targetCamera.transform;
             Transform anchor = ResolveCameraAnchor();
-            Quaternion yawRotation = Quaternion.Euler(0f, currentYawOffset, 0f);
+            Quaternion offsetRotation = BuildOffsetRotation();
             if (anchor != null && cameraTransform.parent == anchor)
-                cameraTransform.localRotation = yawRotation;
+                cameraTransform.localRotation = offsetRotation;
+            else if (anchor != null)
+                cameraTransform.rotation = anchorBaseRotation * offsetRotation;
             else
-                cameraTransform.rotation = yawRotation * anchorBaseRotation;
+                cameraTransform.rotation = offsetRotation;
+
+            ApplyYawFollowers(anchor);
         }
         #endregion
 
         #region Helpers
+        /// <summary>
+        /// Returns true when yaw should respond to drag and swipe input.
+        /// </summary>
+        private bool ShouldProcessYaw()
+        {
+            return axisMode == FreeAimAxisMode.HorizontalOnly || axisMode == FreeAimAxisMode.HorizontalAndVertical;
+        }
+
+        /// <summary>
+        /// Returns true when pitch should respond to drag and swipe input.
+        /// </summary>
+        private bool ShouldProcessPitch()
+        {
+            return axisMode == FreeAimAxisMode.VerticalOnly || axisMode == FreeAimAxisMode.HorizontalAndVertical;
+        }
+
+        /// <summary>
+        /// Resolves pitch clamp values to protect from excessive vertical rotation.
+        /// </summary>
+        private Vector2 ResolvePitchClamp()
+        {
+            float up = Mathf.Max(1f, pitchUpClampDegrees);
+            float down = Mathf.Max(1f, pitchDownClampDegrees);
+            return new Vector2(up, down);
+        }
+
+        /// <summary>
+        /// Builds the combined pitch and yaw rotation from the current offsets.
+        /// </summary>
+        private Quaternion BuildOffsetRotation()
+        {
+            return Quaternion.Euler(currentPitchOffset, currentYawOffset, 0f);
+        }
+
+        /// <summary>
+        /// Rotates designated turret transforms to mirror the camera yaw while visible.
+        /// </summary>
+        private void ApplyYawFollowers(Transform anchor)
+        {
+            if (yawFollowTargets == null || yawFollowTargets.Length == 0)
+                return;
+
+            Vector3 upAxis = anchor != null ? anchor.up : Vector3.up;
+            Quaternion yawRotation = Quaternion.AngleAxis(currentYawOffset, upAxis);
+            for (int i = 0; i < yawFollowTargets.Length; i++)
+            {
+                Transform target = yawFollowTargets[i];
+                if (target == null)
+                    continue;
+
+                Quaternion baseRotation = yawFollowBaseRotations != null && yawFollowBaseRotations.Length > i ? yawFollowBaseRotations[i] : target.rotation;
+                target.rotation = yawRotation * baseRotation;
+            }
+        }
+
+        /// <summary>
+        /// Captures yaw follow targets and their initial rotation for free-aim alignment.
+        /// </summary>
+        private void CacheYawFollowTargets()
+        {
+            if (activeTurret == null)
+            {
+                yawFollowTargets = null;
+                yawFollowBaseRotations = null;
+                return;
+            }
+
+            yawFollowTargets = activeTurret.GetFreeAimYawFollowTargets();
+            if (yawFollowTargets == null || yawFollowTargets.Length == 0)
+            {
+                yawFollowBaseRotations = null;
+                return;
+            }
+
+            if (yawFollowBaseRotations == null || yawFollowBaseRotations.Length != yawFollowTargets.Length)
+                yawFollowBaseRotations = new Quaternion[yawFollowTargets.Length];
+
+            for (int i = 0; i < yawFollowTargets.Length; i++)
+            {
+                Transform target = yawFollowTargets[i];
+                yawFollowBaseRotations[i] = target != null ? target.rotation : Quaternion.identity;
+            }
+        }
+
         /// <summary>
         /// Maps the current muzzle forward as firing direction fallback.
         /// </summary>
@@ -511,9 +656,23 @@ namespace Player.Build
                 return Vector3.forward;
 
             Quaternion baseRotation = anchorBaseRotation;
-            Quaternion yawRotation = Quaternion.AngleAxis(currentYawOffset, Vector3.up);
-            Vector3 forward = yawRotation * baseRotation * Vector3.forward;
+            Quaternion offsetRotation = BuildOffsetRotation();
+            Vector3 forward = baseRotation * offsetRotation * Vector3.forward;
             return forward.normalized;
+        }
+
+        /// <summary>
+        /// Provides the up axis used to distribute cone fire from the current perspective.
+        /// </summary>
+        private Vector3 ResolveFireUpAxis()
+        {
+            if (targetCamera != null)
+                return targetCamera.transform.up;
+
+            if (activeTurret != null)
+                return activeTurret.transform.up;
+
+            return Vector3.up;
         }
 
         /// <summary>
@@ -589,6 +748,21 @@ namespace Player.Build
         }
 
         /// <summary>
+        /// Provides the renderer list to toggle, preferring authored references over full hierarchy.
+        /// </summary>
+        private Renderer[] ResolveRendererCache()
+        {
+            if (cachedTurretRenderers != null && cachedTurretRenderers.Length > 0)
+                return cachedTurretRenderers;
+
+            if (activeTurret == null)
+                return null;
+
+            cachedTurretRenderers = activeTurret.GetFreeAimRendererSet();
+            return cachedTurretRenderers;
+        }
+
+        /// <summary>
         /// Hides turret renderers if the camera approaches the chassis to avoid clipping.
         /// </summary>
         private void EvaluateCameraClipping()
@@ -610,16 +784,21 @@ namespace Player.Build
         /// </summary>
         private void HideTurretRenderers()
         {
-            if (activeTurret == null)
+            Renderer[] renderers = ResolveRendererCache();
+            if (renderers == null || renderers.Length == 0)
                 return;
 
-            if (cachedTurretRenderers == null || cachedTurretRenderers.Length == 0)
-                cachedTurretRenderers = activeTurret.GetComponentsInChildren<Renderer>(true);
+            if (cachedRendererStates == null || cachedRendererStates.Length != renderers.Length)
+                cachedRendererStates = new bool[renderers.Length];
 
-            for (int i = 0; i < cachedTurretRenderers.Length; i++)
+            for (int i = 0; i < renderers.Length; i++)
             {
-                Renderer renderer = cachedTurretRenderers[i];
-                if (renderer != null && renderer.enabled)
+                Renderer renderer = renderers[i];
+                if (renderer == null)
+                    continue;
+
+                cachedRendererStates[i] = renderer.enabled;
+                if (renderer.enabled)
                     renderer.enabled = false;
             }
         }
@@ -630,15 +809,22 @@ namespace Player.Build
         private void ShowTurretRenderers()
         {
             turretHiddenDuringFreeAim = false;
-            if (cachedTurretRenderers == null)
+            Renderer[] renderers = ResolveRendererCache();
+            if (renderers == null)
                 return;
 
-            for (int i = 0; i < cachedTurretRenderers.Length; i++)
+            for (int i = 0; i < renderers.Length; i++)
             {
-                Renderer renderer = cachedTurretRenderers[i];
-                if (renderer != null && !renderer.enabled)
+                Renderer renderer = renderers[i];
+                if (renderer == null)
+                    continue;
+
+                bool shouldEnable = cachedRendererStates != null && cachedRendererStates.Length > i ? cachedRendererStates[i] : true;
+                if (shouldEnable && !renderer.enabled)
                     renderer.enabled = true;
             }
+
+            cachedRendererStates = null;
         }
         #endregion
 

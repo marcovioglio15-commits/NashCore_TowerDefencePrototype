@@ -32,6 +32,12 @@ namespace Scriptables.Turrets
         [Tooltip("Projectile origin used for cone visualization and muzzle placement.")]
         private Transform muzzle;
 
+        [Header("Free Aim Presentation")]
+        [Tooltip("Renderers disabled while the player possesses the turret to avoid camera clipping.")]
+        [SerializeField] private Renderer[] freeAimHiddenRenderers;
+        [Tooltip("Transforms rotated horizontally to mirror the possessed camera when any visuals stay visible.")]
+        [SerializeField] private Transform[] freeAimYawTargets;
+
         [Header("Debug")]
 
         [SerializeField]
@@ -55,6 +61,8 @@ namespace Scriptables.Turrets
         private TurretStatSnapshot activeStats;
         private bool freeAimActive;
         private Quaternion yawBaseRotation;
+        private Renderer[] cachedRenderers;
+        private Transform[] cachedYawFallback;
 
         #endregion
 
@@ -103,6 +111,22 @@ namespace Scriptables.Turrets
             get { return muzzle; }
         }
 
+        /// <summary>
+        /// Renderer set explicitly hidden when the player possesses this turret.
+        /// </summary>
+        public Renderer[] FreeAimHiddenRenderers
+        {
+            get { return freeAimHiddenRenderers; }
+        }
+
+        /// <summary>
+        /// Optional transforms rotated to follow the possessed camera yaw when visuals remain visible.
+        /// </summary>
+        public Transform[] FreeAimYawTargets
+        {
+            get { return freeAimYawTargets; }
+        }
+
         #endregion
         #endregion
 
@@ -135,6 +159,8 @@ namespace Scriptables.Turrets
         {
             lastContext = context;
             freeAimActive = false;
+            cachedRenderers = null;
+            cachedYawFallback = null;
             ApplyDefinition(context.Definition != null ? context.Definition : defaultDefinition);
             if (!HasDefinition)
             {
@@ -161,6 +187,8 @@ namespace Scriptables.Turrets
             freeAimActive = false;
             RebuildStats();
             CacheYawBaseRotation();
+            cachedRenderers = null;
+            cachedYawFallback = null;
         }
 
         #endregion
@@ -263,6 +291,37 @@ namespace Scriptables.Turrets
         {
             freeAimActive = enabled;
             RebuildStats();
+        }
+
+        /// <summary>
+        /// Returns the renderer collection to toggle during possession, defaulting to all renderers.
+        /// </summary>
+        public Renderer[] GetFreeAimRendererSet()
+        {
+            if (freeAimHiddenRenderers != null && freeAimHiddenRenderers.Length > 0)
+                return freeAimHiddenRenderers;
+
+            if (cachedRenderers == null || cachedRenderers.Length == 0)
+                cachedRenderers = GetComponentsInChildren<Renderer>(true);
+
+            return cachedRenderers;
+        }
+
+        /// <summary>
+        /// Returns the transforms that should follow camera yaw while in free aim.
+        /// </summary>
+        public Transform[] GetFreeAimYawFollowTargets()
+        {
+            if (freeAimYawTargets != null && freeAimYawTargets.Length > 0)
+                return freeAimYawTargets;
+
+            if (cachedYawFallback == null || cachedYawFallback.Length == 0)
+            {
+                cachedYawFallback = new Transform[1];
+                cachedYawFallback[0] = yawRoot != null ? yawRoot : transform;
+            }
+
+            return cachedYawFallback;
         }
 
         #endregion

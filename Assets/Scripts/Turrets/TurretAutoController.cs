@@ -351,22 +351,37 @@ namespace Scriptables.Turrets
             if (pooledTurret == null || !pooledTurret.HasDefinition)
                 yield break;
 
-            TurretFirePattern pattern = pooledTurret.Definition.AutomaticFire.Pattern;
+            TurretFirePattern pattern = stats.AutomaticPattern;
             int projectiles = Mathf.Max(1, stats.AutomaticProjectilesPerShot);
             WaitForSeconds interDelay = null;
             bool useDelay = pattern == TurretFirePattern.Consecutive && stats.AutomaticInterProjectileDelay > 0f;
             if (useDelay)
                 interDelay = new WaitForSeconds(stats.AutomaticInterProjectileDelay);
 
+            Vector3 upAxis = ResolveAutomaticUpAxis();
             for (int i = 0; i < projectiles; i++)
             {
-                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, stats.AutomaticConeAngleDegrees, i, projectiles);
+                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, stats.AutomaticConeAngleDegrees, i, projectiles, upAxis);
                 TurretFireUtility.SpawnProjectile(pooledTurret, direction);
 
                 bool shouldDelay = useDelay && i < projectiles - 1;
                 if (shouldDelay && interDelay != null)
                     yield return interDelay;
             }
+        }
+
+        /// <summary>
+        /// Determines the up axis used for spreading automatic volleys.
+        /// </summary>
+        private Vector3 ResolveAutomaticUpAxis()
+        {
+            if (pooledTurret != null && pooledTurret.YawPivot != null)
+                return pooledTurret.YawPivot.up;
+
+            if (pooledTurret != null)
+                return pooledTurret.transform.up;
+
+            return Vector3.up;
         }
         #endregion
 

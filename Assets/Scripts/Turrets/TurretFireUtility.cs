@@ -12,7 +12,7 @@ namespace Scriptables.Turrets
         /// <summary>
         /// Computes the projectile direction for the provided index respecting the requested pattern.
         /// </summary>
-        public static Vector3 ResolveProjectileDirection(Vector3 forward, TurretFirePattern pattern, float coneAngleDegrees, int index, int total)
+        public static Vector3 ResolveProjectileDirection(Vector3 forward, TurretFirePattern pattern, float coneAngleDegrees, int index, int total, Vector3? upAxis = null)
         {
             if (total <= 1 || pattern != TurretFirePattern.Cone)
                 return forward;
@@ -20,10 +20,14 @@ namespace Scriptables.Turrets
             if (coneAngleDegrees <= 0f)
                 return forward;
 
+            Vector3 rotationAxis = upAxis.HasValue ? upAxis.Value : Vector3.up;
+            if (rotationAxis.sqrMagnitude <= Mathf.Epsilon)
+                rotationAxis = Vector3.up;
+
             float step = coneAngleDegrees / (total - 1);
             float startAngle = -coneAngleDegrees * 0.5f;
             float angle = startAngle + step * index;
-            Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.up);
+            Quaternion rotation = Quaternion.AngleAxis(angle, rotationAxis.normalized);
             Vector3 adjusted = rotation * forward;
             return adjusted.normalized;
         }
