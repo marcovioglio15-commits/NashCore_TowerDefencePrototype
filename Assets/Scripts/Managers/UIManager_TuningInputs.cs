@@ -40,7 +40,8 @@ public class UIManager_TuningInputs : Singleton<UIManager_TuningInputs>
         EventsManager.Swipe += PrintDetectedSwipe;
         EventsManager.PinchOut += PrintDetectedPinchOut;
         EventsManager.PinchIn += PrintDetectedPinchIn;
-        EventsManager.Hold += PrintDetectedHold;
+        EventsManager.HoldBegan += PrintDetectedHoldBegan;
+        EventsManager.HoldEnded += PrintDetectedHoldEnded;
         EventsManager.Tap += PrintDetectedTap;
     }
 
@@ -50,7 +51,8 @@ public class UIManager_TuningInputs : Singleton<UIManager_TuningInputs>
         EventsManager.Swipe -= PrintDetectedSwipe;
         EventsManager.PinchOut -= PrintDetectedPinchOut;
         EventsManager.PinchIn -= PrintDetectedPinchIn;
-        EventsManager.Hold -= PrintDetectedHold;
+        EventsManager.HoldBegan -= PrintDetectedHoldBegan;
+        EventsManager.HoldEnded -= PrintDetectedHoldEnded;
         EventsManager.Tap -= PrintDetectedTap;
     }
 
@@ -117,11 +119,20 @@ public class UIManager_TuningInputs : Singleton<UIManager_TuningInputs>
         }
     }
 
-    private void PrintDetectedHold()
+    private void PrintDetectedHoldBegan(Vector2 screenPosition)
     {
         if (InputDetectionText != null)
         {
-            InputDetectionText.text = "Hold";
+            InputDetectionText.text = $"Hold began at {screenPosition}";
+            Debug.Log(InputDetectionText.text);
+        }
+    }
+
+    private void PrintDetectedHoldEnded(Vector2 screenPosition)
+    {
+        if (InputDetectionText != null)
+        {
+            InputDetectionText.text = $"Hold ended at {screenPosition}";
             Debug.Log(InputDetectionText.text);
         }
     }

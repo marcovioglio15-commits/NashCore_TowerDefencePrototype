@@ -4,6 +4,7 @@ using Managers.UI;
 using Player.Inventory;
 using Scriptables.Turrets;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 
@@ -70,6 +71,36 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
     [Tooltip("Canvas group used to fade the free-aim reticle.")] 
     [SerializeField] private CanvasGroup freeAimReticleCanvasGroup;
 
+    [Header("Navigation")]
+    [Tooltip("Scene name used when returning to the main menu.")]
+    [SerializeField] private string mainMenuSceneName = "MainMenuScene";
+
+    [Header("Pause UI")]
+    [Tooltip("Button that opens the pause panel.")]
+    [SerializeField] private Button pauseButton;
+    [Tooltip("Panel displayed when the game is paused.")]
+    [SerializeField] private GameObject pausePanel;
+    [Tooltip("Button that resumes gameplay from the pause panel.")]
+    [SerializeField] private Button resumeButton;
+    [Tooltip("Button that returns to the main menu from the pause panel.")]
+    [SerializeField] private Button pausePanelMainMenuButton;
+
+    [Header("Ending UI")]
+    [Tooltip("Panel shown when the match ends.")]
+    [SerializeField] private GameObject endingPanel;
+    [Tooltip("Banner label summarizing the final result.")]
+    [SerializeField] private TextMeshProUGUI resultLabel;
+    [Tooltip("Color applied to the result label on victory.")]
+    [SerializeField] private Color victoryResultColor = new Color(0.34f, 0.83f, 0.58f, 1f);
+    [Tooltip("Color applied to the result label on defeat.")]
+    [SerializeField] private Color defeatResultColor = new Color(0.9f, 0.25f, 0.25f, 1f);
+    [Tooltip("Label listing the number of defeated hordes.")]
+    [SerializeField] private TextMeshProUGUI defeatedHordesLabel;
+    [Tooltip("Button that returns to the main menu from the ending panel.")]
+    [SerializeField] private Button endingMainMenuButton;
+    [Tooltip("Button that closes the application from the ending panel.")]
+    [SerializeField] private Button endingQuitButton;
+
     [Header("Phase Flow")]
     [Tooltip("Button that toggles between build and combat phases.")]
     [SerializeField] private Button phaseToggleButton;
@@ -118,6 +149,11 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
     private bool buildUiVisible = true;
     private Coroutine goldPulseRoutine;
     private Color goldLabelBaseColor = Color.white;
+    private bool pauseActive;
+    private bool endingDisplayed;
+    private int defeatedHordesCount;
+    private const string ResultPrefix = "RESULT : ";
+    private const string HordesPrefix = "HORDES DEFEATED : ";
     #endregion
     #endregion
 
@@ -140,6 +176,9 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         EventsManager.GamePhaseChanged += HandleGamePhaseChanged;
         EventsManager.PlayerGoldChanged += HandlePlayerGoldChanged;
         EventsManager.PlayerGoldInsufficient += HandlePlayerGoldInsufficient;
+        EventsManager.GameVictoryAchieved += HandleGameVictoryAchieved;
+        EventsManager.GameDefeatTriggered += HandleGameDefeatTriggered;
+        EventsManager.IncreaseCompletedHordesCounter += HandleCompletedHordesIncreased;
         if (buildablesInventory != null)
             buildablesInventory.RequestCatalogBroadcast();
 
@@ -154,6 +193,14 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         SyncPhaseUiState();
         CacheGoldLabelColor();
         SyncGoldLabel();
+        AttachPauseButtonListeners();
+        AttachEndingButtonListeners();
+        HidePausePanel();
+        HideEndingPanel();
+        endingDisplayed = false;
+        pauseActive = false;
+        defeatedHordesCount = 0;
+        UpdateDefeatedHordesLabel();
     }
 
     /// <summary>
@@ -172,6 +219,9 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         EventsManager.GamePhaseChanged -= HandleGamePhaseChanged;
         EventsManager.PlayerGoldChanged -= HandlePlayerGoldChanged;
         EventsManager.PlayerGoldInsufficient -= HandlePlayerGoldInsufficient;
+        EventsManager.GameVictoryAchieved -= HandleGameVictoryAchieved;
+        EventsManager.GameDefeatTriggered -= HandleGameDefeatTriggered;
+        EventsManager.IncreaseCompletedHordesCounter -= HandleCompletedHordesIncreased;
         DetachPhaseButtonListener();
         HideFreeAimUi();
         HideReticle();
@@ -185,6 +235,11 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
 
         StopGoldPulse();
         RestoreGoldLabelColor();
+        DetachPauseButtonListeners();
+        DetachEndingButtonListeners();
+        HidePausePanel();
+        HideEndingPanel();
+        ApplyPauseState(false);
     }
 
     /// <summary>
@@ -443,6 +498,245 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
 
         if (handler != null)
             handler.SetUiManager();
+    }
+    #endregion
+
+    #region Pause UI
+    /// <summary>
+    /// Binds the pause, resume and navigation buttons.
+    /// </summary>
+    private void AttachPauseButtonListeners()
+    {
+        if (pauseButton != null)
+            pauseButton.onClick.AddListener(HandlePausePressed);
+
+        if (resumeButton != null)
+            resumeButton.onClick.AddListener(HandleResumePressed);
+
+        if (pausePanelMainMenuButton != null)
+            pausePanelMainMenuButton.onClick.AddListener(HandleMainMenuRequested);
+    }
+
+    /// <summary>
+    /// Removes listeners from pause-related buttons.
+    /// </summary>
+    private void DetachPauseButtonListeners()
+    {
+        if (pauseButton != null)
+            pauseButton.onClick.RemoveListener(HandlePausePressed);
+
+        if (resumeButton != null)
+            resumeButton.onClick.RemoveListener(HandleResumePressed);
+
+        if (pausePanelMainMenuButton != null)
+            pausePanelMainMenuButton.onClick.RemoveListener(HandleMainMenuRequested);
+    }
+
+    /// <summary>
+    /// Opens the pause overlay.
+    /// </summary>
+    private void HandlePausePressed()
+    {
+        if (pauseActive)
+            return;
+
+        if (endingDisplayed)
+            return;
+
+        ShowPausePanel();
+    }
+
+    /// <summary>
+    /// Closes the pause overlay.
+    /// </summary>
+    private void HandleResumePressed()
+    {
+        if (!pauseActive)
+            return;
+
+        HidePausePanel();
+    }
+
+    /// <summary>
+    /// Displays the pause panel and halts gameplay time.
+    /// </summary>
+    private void ShowPausePanel()
+    {
+        if (pausePanel != null && !pausePanel.activeSelf)
+            pausePanel.SetActive(true);
+
+        ApplyPauseState(true);
+    }
+
+    /// <summary>
+    /// Hides the pause panel and restores gameplay time scale.
+    /// </summary>
+    private void HidePausePanel()
+    {
+        if (pausePanel != null && pausePanel.activeSelf)
+            pausePanel.SetActive(false);
+
+        ApplyPauseState(false);
+    }
+
+    /// <summary>
+    /// Applies the requested pause state using the GameManager when available.
+    /// </summary>
+    private void ApplyPauseState(bool shouldPause)
+    {
+        GameManager manager = GameManager.Instance;
+        if (manager != null)
+            manager.ForcePause(shouldPause);
+        else
+            Time.timeScale = shouldPause ? 0f : 1f;
+
+        pauseActive = shouldPause;
+    }
+    #endregion
+
+    #region Ending UI
+    /// <summary>
+    /// Binds navigation controls inside the ending panel.
+    /// </summary>
+    private void AttachEndingButtonListeners()
+    {
+        if (endingMainMenuButton != null)
+            endingMainMenuButton.onClick.AddListener(HandleMainMenuRequested);
+
+        if (endingQuitButton != null)
+            endingQuitButton.onClick.AddListener(HandleQuitRequested);
+    }
+
+    /// <summary>
+    /// Unbinds navigation controls inside the ending panel.
+    /// </summary>
+    private void DetachEndingButtonListeners()
+    {
+        if (endingMainMenuButton != null)
+            endingMainMenuButton.onClick.RemoveListener(HandleMainMenuRequested);
+
+        if (endingQuitButton != null)
+            endingQuitButton.onClick.RemoveListener(HandleQuitRequested);
+    }
+
+    /// <summary>
+    /// Reacts to a global victory event.
+    /// </summary>
+    private void HandleGameVictoryAchieved()
+    {
+        ShowEndingPanel(true);
+    }
+
+    /// <summary>
+    /// Reacts to a global defeat event.
+    /// </summary>
+    private void HandleGameDefeatTriggered()
+    {
+        ShowEndingPanel(false);
+    }
+
+    /// <summary>
+    /// Increments the defeated horde counter.
+    /// </summary>
+    private void HandleCompletedHordesIncreased()
+    {
+        defeatedHordesCount++;
+        UpdateDefeatedHordesLabel();
+    }
+
+    /// <summary>
+    /// Presents the ending panel with the provided outcome.
+    /// </summary>
+    private void ShowEndingPanel(bool victory)
+    {
+        if (endingDisplayed)
+            return;
+
+        if (pauseActive)
+            HidePausePanel();
+
+        endingDisplayed = true;
+        ApplyPauseState(true);
+
+        if (endingPanel != null && !endingPanel.activeSelf)
+            endingPanel.SetActive(true);
+
+        if (pauseButton != null)
+            pauseButton.interactable = false;
+
+        UpdateResultLabel(victory);
+        UpdateDefeatedHordesLabel();
+    }
+
+    /// <summary>
+    /// Hides the ending panel and restores pause interactions.
+    /// </summary>
+    private void HideEndingPanel()
+    {
+        if (endingPanel != null && endingPanel.activeSelf)
+            endingPanel.SetActive(false);
+
+        endingDisplayed = false;
+        if (pauseButton != null)
+            pauseButton.interactable = true;
+    }
+
+    /// <summary>
+    /// Updates the result banner text and color.
+    /// </summary>
+    private void UpdateResultLabel(bool victory)
+    {
+        if (resultLabel == null)
+            return;
+
+        string result = victory ? "VICTORY" : "DEFEAT";
+        resultLabel.text = $"{ResultPrefix}{result}";
+        resultLabel.color = victory ? victoryResultColor : defeatResultColor;
+    }
+
+    /// <summary>
+    /// Refreshes the defeated hordes banner.
+    /// </summary>
+    private void UpdateDefeatedHordesLabel()
+    {
+        if (defeatedHordesLabel == null)
+            return;
+
+        defeatedHordesLabel.text = $"{HordesPrefix}{defeatedHordesCount}";
+    }
+    #endregion
+
+    #region Navigation
+    /// <summary>
+    /// Handles navigation back to the main menu scene.
+    /// </summary>
+    private void HandleMainMenuRequested()
+    {
+        ApplyPauseState(false);
+        LoadMainMenuScene();
+    }
+
+    /// <summary>
+    /// Loads the configured main menu scene.
+    /// </summary>
+    private void LoadMainMenuScene()
+    {
+        if (string.IsNullOrEmpty(mainMenuSceneName))
+        {
+            Debug.LogError("Main menu scene name is not configured.", this);
+            return;
+        }
+
+        SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    /// <summary>
+    /// Executes application quit through the platform-safe helper.
+    /// </summary>
+    private void HandleQuitRequested()
+    {
+        ApplyPauseState(false);
+        AppUtils.Quit();
     }
     #endregion
 

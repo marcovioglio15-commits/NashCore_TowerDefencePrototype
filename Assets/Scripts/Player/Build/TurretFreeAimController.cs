@@ -40,6 +40,8 @@ namespace Player.Build
         [SerializeField] private float yawSensitivity = 0.35f;
         [Tooltip("Degrees of pitch applied per pixel of vertical drag or swipe.")]
         [SerializeField] private float pitchSensitivity = 0.35f;
+        [Tooltip("Vertical drag magnitude in pixels required before pitch input is processed.")]
+        [SerializeField] private float pitchInputDeadZone = 1.5f;
         [Tooltip("Maximum upward pitch offset allowed relative to the starting orientation; zero disables the clamp.")]
         [SerializeField] private float pitchUpClampDegrees = 55f;
         [Tooltip("Maximum downward pitch offset allowed relative to the starting orientation; zero disables the clamp.")]
@@ -80,6 +82,7 @@ namespace Player.Build
         private Renderer[] cachedTurretRenderers;
         private bool[] cachedRendererStates;
         private bool uiArmed;
+        private bool reticleHoldActive;
         private Transform[] yawFollowTargets;
         private Quaternion[] yawFollowBaseRotations;
         private bool phaseAllowsFreeAim = true;
@@ -105,6 +108,8 @@ namespace Player.Build
             EventsManager.TurretPerspectiveRequested += HandlePerspectiveRequested;
             EventsManager.Drag += HandleAngularDrag;
             EventsManager.Swipe += HandleAngularSwipe;
+            EventsManager.HoldBegan += HandleHoldBegan;
+            EventsManager.HoldEnded += HandleHoldEnded;
             EventsManager.Tap += HandleTap;
             EventsManager.TurretFreeAimExitRequested += HandleExitRequested;
             EventsManager.GamePhaseChanged += HandleGamePhaseChanged;
@@ -119,6 +124,8 @@ namespace Player.Build
             EventsManager.TurretPerspectiveRequested -= HandlePerspectiveRequested;
             EventsManager.Drag -= HandleAngularDrag;
             EventsManager.Swipe -= HandleAngularSwipe;
+            EventsManager.HoldBegan -= HandleHoldBegan;
+            EventsManager.HoldEnded -= HandleHoldEnded;
             EventsManager.Tap -= HandleTap;
             EventsManager.TurretFreeAimExitRequested -= HandleExitRequested;
             EventsManager.GamePhaseChanged -= HandleGamePhaseChanged;
@@ -136,6 +143,9 @@ namespace Player.Build
         {
             if (fireCooldownTimer > 0f)
                 fireCooldownTimer = Mathf.Max(0f, fireCooldownTimer - Time.deltaTime);
+
+            if (freeAimActive && reticleHoldActive)
+                TryFire();
 
             if (freeAimActive && activeTurret != null && activeTurret.HasDefinition)
                 activeTurret.CooldownHeat(Time.deltaTime);
@@ -186,6 +196,32 @@ namespace Player.Build
                 return;
 
             ApplyAngularInput(delta);
+        }
+
+        /// <summary>
+        /// Starts continuous fire attempts while the reticle is held.
+        /// </summary>
+        private void HandleHoldBegan(Vector2 screenPosition)
+        {
+            if (!freeAimActive)
+                return;
+
+            if (!IsTapWithinReticle(screenPosition))
+                return;
+
+            reticleHoldActive = true;
+            TryFire();
+        }
+
+        /// <summary>
+        /// Stops continuous fire attempts when the reticle hold ends.
+        /// </summary>
+        private void HandleHoldEnded(Vector2 screenPosition)
+        {
+            if (!reticleHoldActive)
+                return;
+
+            reticleHoldActive = false;
         }
 
         /// <summary>
@@ -246,6 +282,7 @@ namespace Player.Build
             cachedRendererStates = null;
             turretHiddenDuringFreeAim = false;
             uiArmed = false;
+            reticleHoldActive = false;
             currentYawOffset = 0f;
             currentPitchOffset = 0f;
             CacheCameraState();
@@ -271,6 +308,7 @@ namespace Player.Build
             currentYawOffset = 0f;
             currentPitchOffset = 0f;
             uiArmed = false;
+            reticleHoldActive = false;
             StartCameraReturn();
             EventsManager.InvokeTurretFreeAimEnded(turretToRelease);
             ShowTurretRenderers();
@@ -292,6 +330,7 @@ namespace Player.Build
             activeTurret = null;
             freeAimActive = false;
             fireCooldownTimer = 0f;
+            reticleHoldActive = false;
             ShowTurretRenderers();
             cachedTurretRenderers = null;
             cachedRendererStates = null;
@@ -313,23 +352,28 @@ namespace Player.Build
             float maxDegrees = stats.TurnRate * Time.deltaTime;
             bool processYaw = ShouldProcessYaw();
             bool processPitch = ShouldProcessPitch();
+            float pitchThreshold = pitchInputDeadZone <= 0f ? 0f : pitchInputDeadZone;
+            bool pitchEngaged = processPitch && Mathf.Abs(delta.y) >= pitchThreshold;
             float yawDelta = processYaw ? delta.x * yawSensitivity : 0f;
-            float pitchDelta = processPitch ? -delta.y * pitchSensitivity : 0f;
+            float pitchDelta = pitchEngaged ? -delta.y * pitchSensitivity : 0f;
             if (maxDegrees > 0f)
             {
                 if (processYaw)
                     yawDelta = Mathf.Clamp(yawDelta, -maxDegrees, maxDegrees);
-                if (processPitch)
+                if (pitchEngaged)
                     pitchDelta = Mathf.Clamp(pitchDelta, -maxDegrees, maxDegrees);
             }
 
             if (processYaw)
             {
                 float clampHalf = ResolveYawClampHalf();
-                currentYawOffset = Mathf.Clamp(currentYawOffset + yawDelta, -clampHalf, clampHalf);
+                if (float.IsPositiveInfinity(clampHalf))
+                    currentYawOffset = Mathf.Repeat(currentYawOffset + yawDelta + 180f, 360f) - 180f;
+                else
+                    currentYawOffset = Mathf.Clamp(currentYawOffset + yawDelta, -clampHalf, clampHalf);
             }
 
-            if (processPitch)
+            if (pitchEngaged)
             {
                 Vector2 pitchClamp = ResolvePitchClamp();
                 float minPitch = -pitchClamp.x;
@@ -756,6 +800,9 @@ namespace Player.Build
         /// </summary>
         private float ResolveYawClampHalf()
         {
+            if (freeAimActive && fallbackYawClampDegrees <= 0f)
+                return float.PositiveInfinity;
+
             float clampDegrees = fallbackYawClampDegrees;
             if (activeTurret != null && activeTurret.HasDefinition && activeTurret.ActiveStats.YawClampDegrees > 0f)
                 clampDegrees = activeTurret.ActiveStats.YawClampDegrees;

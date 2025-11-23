@@ -10,7 +10,8 @@ public static class EventsManager
     #region Inputs
     public static Action<Vector2> Drag;
     public static Action<Vector2> Swipe;
-    public static Action Hold;
+    public static Action<Vector2> HoldBegan;
+    public static Action<Vector2> HoldEnded;
     public static Action<Vector2> Tap;
     public static Action<Vector2> PinchIn;
     public static Action<Vector2> PinchOut;
@@ -40,13 +41,20 @@ public static class EventsManager
     public static Action<int> PlayerGoldEarned;
     public static Action<int, int> PlayerGoldInsufficient;
     #endregion
+
+    #region Combat Resolution
+    public static Action GameVictoryAchieved;
+    public static Action GameDefeatTriggered;
+    public static Action IncreaseCompletedHordesCounter;
+    #endregion
     #endregion
 
     #region Invokes
     #region Inputs
     public static void InvokeDrag(Vector2 delta) => Drag?.Invoke(delta);
     public static void InvokeSwipe(Vector2 delta) => Swipe?.Invoke(delta);
-    public static void InvokeHold() => Hold?.Invoke();
+    public static void InvokeHoldBegan(Vector2 screenPosition) => HoldBegan?.Invoke(screenPosition);
+    public static void InvokeHoldEnded(Vector2 screenPosition) => HoldEnded?.Invoke(screenPosition);
     public static void InvokeTap(Vector2 screenPosition) => Tap?.Invoke(screenPosition);
     public static void InvokePinchIn(Vector2 delta)=> PinchIn?.Invoke(delta);
     public static void InvokePinchOut(Vector2 delta)=> PinchOut?.Invoke(delta);
@@ -75,6 +83,12 @@ public static class EventsManager
     public static void InvokePlayerGoldChanged(int gold)=> PlayerGoldChanged?.Invoke(gold);
     public static void InvokePlayerGoldEarned(int amount)=> PlayerGoldEarned?.Invoke(amount);
     public static void InvokePlayerGoldInsufficient(int currentGold, int requiredGold)=> PlayerGoldInsufficient?.Invoke(currentGold, requiredGold);
+    #endregion
+
+    #region Combat Resolution
+    public static void InvokeGameVictoryAchieved()=> GameVictoryAchieved?.Invoke();
+    public static void InvokeGameDefeatTriggered()=> GameDefeatTriggered?.Invoke();
+    public static void InvokeIncreaseCompletedHordesCounter()=> IncreaseCompletedHordesCounter?.Invoke();
     #endregion
     #endregion
 

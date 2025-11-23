@@ -23,6 +23,7 @@ public class GameManager : Singleton<GameManager>
     #region Runtime
     private GamePhase currentPhase;
     private int phaseSwitchCount;
+    private bool isPaused;
     #endregion
     #endregion
 
@@ -47,6 +48,14 @@ public class GameManager : Singleton<GameManager>
 
             return phaseSwitchCount < maxPhaseSwitches;
         }
+    }
+
+    /// <summary>
+    /// True when gameplay is currently paused.
+    /// </summary>
+    public bool IsGamePaused
+    {
+        get { return isPaused; }
     }
     #endregion
 
@@ -128,6 +137,29 @@ public class GameManager : Singleton<GameManager>
 
         if (turretInteractionController != null)
             turretInteractionController.SetPhaseCapabilities(buildActive, !buildActive);
+    }
+    #endregion
+
+    #region Pause
+    public bool TogglePause()
+    {
+        ForcePause(!isPaused);
+        return isPaused;
+    }
+
+    public void ForcePause(bool shouldPause, bool isInitialization = false)
+    {
+        if (isPaused == shouldPause)
+            return;
+        if (shouldPause)
+        {
+            Time.timeScale = 0f;
+            isPaused = true;
+            return;
+        }
+
+        Time.timeScale = 1f;
+        isPaused = false;
     }
     #endregion
 

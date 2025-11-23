@@ -89,8 +89,6 @@ namespace CrossDeviceScalability
 
             if (gizmoDepth < 0.01f)
                 gizmoDepth = 0.01f;
-
-            UpdatePlayArea(true);
         }
 
         /// <summary>

@@ -4,11 +4,15 @@ using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 /// <summary>
 /// Centralized mobile gesture manager built on the new Input System (tap, hold, drag, swipe, pinch).
+/// This version ensures EnhancedTouch is initialized once and persists across scenes,
+/// fixing the issue where Touch.activeTouches becomes 0 after scene changes or when
+/// starting from a non-game scene.
 /// </summary>
 [DefaultExecutionOrder(-200)]
 public class InputManager : Singleton<InputManager>
 {
     #region Variables And Properties
+
     #region Serialized Configuration
     [Header("Swipe detection")]
     [Tooltip("Minimum travel distance in pixels to classify the gesture as a swipe.")]
@@ -47,90 +51,46 @@ public class InputManager : Singleton<InputManager>
     private bool pinchActive;
     private Vector2 pinchPreviousVector;
     #endregion
+
     #endregion
 
-    #region Methods
     #region Unity Lifecycle
+
     /// <summary>
-    /// Ensures enhanced touch is available before gameplay.
+    /// Ensures the manager persists across scenes and initializes the touch pipeline ONCE.
     /// </summary>
     protected override void Awake()
     {
         base.Awake();
-        EnableTouchPipeline();
+
+        DontDestroyOnLoad(gameObject);
+
+        if (!EnhancedTouchSupport.enabled)
+        {
+            EnhancedTouchSupport.Enable();
+            TouchSimulation.Enable();
+        }
     }
 
     /// <summary>
-    /// Keeps touch helpers active when the manager is enabled.
-    /// </summary>
-    protected override void OnEnable()
-    {
-        base.OnEnable();
-        EnableTouchPipeline();
-    }
-
-    /// <summary>
-    /// Shuts down touch helpers on disable.
-    /// </summary>
-    private void OnDisable()
-    {
-        ResetGestureState();
-        ResetPinchState();
-
-        EnhancedTouchSupport.Disable();
-        TouchSimulation.Disable();
-    }
-
-    /// <summary>
-    /// Evaluates gesture state every frame.
+    /// Update loop always available across scenes.
     /// </summary>
     private void Update()
     {
-        if (!EnhancedTouchSupport.enabled)
-            EnableTouchPipeline();
-
         ProcessTouchGestures();
     }
+
     #endregion
 
     #region Public Configuration
-    /// <summary>
-    /// Updates the swipe distance threshold.
-    /// </summary>
-    public void SetSwipeDistanceThreshold(float value)
-    {
-        swipeDistanceThreshold = Mathf.Max(0f, value);
-    }
-
-    /// <summary>
-    /// Updates the swipe time window.
-    /// </summary>
-    public void SetSwipeTimeThreshold(float value)
-    {
-        swipeTimeThreshold = Mathf.Max(0.01f, value);
-    }
-
-    /// <summary>
-    /// Updates the drag activation distance.
-    /// </summary>
-    public void SetDragStartDistanceThreshold(float value)
-    {
-        dragStartDistanceThreshold = Mathf.Max(0f, value);
-    }
-
-    /// <summary>
-    /// Updates the pinch activation delta.
-    /// </summary>
-    public void SetPinchDistanceThreshold(float value)
-    {
-        pinchDistanceThreshold = Mathf.Max(0f, value);
-    }
+    public void SetSwipeDistanceThreshold(float value) => swipeDistanceThreshold = Mathf.Max(0f, value);
+    public void SetSwipeTimeThreshold(float value) => swipeTimeThreshold = Mathf.Max(0.01f, value);
+    public void SetDragStartDistanceThreshold(float value) => dragStartDistanceThreshold = Mathf.Max(0f, value);
+    public void SetPinchDistanceThreshold(float value) => pinchDistanceThreshold = Mathf.Max(0f, value);
     #endregion
 
     #region Update Loop
-    /// <summary>
-    /// Central touch evaluator that routes to pinch or single-finger processing.
-    /// </summary>
+
     private void ProcessTouchGestures()
     {
         if (!EnhancedTouchSupport.enabled)
@@ -168,21 +128,11 @@ public class InputManager : Singleton<InputManager>
 
         UpdatePrimaryGesture(primaryTouch);
     }
+
     #endregion
 
     #region Touch Pipeline
-    /// <summary>
-    /// Activates enhanced touch support and mouse-to-touch simulation when available.
-    /// </summary>
-    private void EnableTouchPipeline()
-    {
-        EnhancedTouchSupport.Enable();
-        TouchSimulation.Enable();
-    }
 
-    /// <summary>
-    /// Returns the active touch tracked as the primary gesture.
-    /// </summary>
     private Touch GetPrimaryTouch()
     {
         for (int i = 0; i < Touch.activeTouches.Count; i++)
@@ -194,12 +144,11 @@ public class InputManager : Singleton<InputManager>
 
         return Touch.activeTouches[0];
     }
+
     #endregion
 
     #region Single Finger Gestures
-    /// <summary>
-    /// Initializes state for a new primary contact.
-    /// </summary>
+
     private void BeginPrimaryGesture(Touch primaryTouch)
     {
         primaryGestureActive = true;
@@ -212,9 +161,6 @@ public class InputManager : Singleton<InputManager>
         dragActive = false;
     }
 
-    /// <summary>
-    /// Processes primary contact movement, hold, swipe, and drag.
-    /// </summary>
     private void UpdatePrimaryGesture(Touch primaryTouch)
     {
         Vector2 currentPosition = primaryTouch.screenPosition;
@@ -226,7 +172,7 @@ public class InputManager : Singleton<InputManager>
             bool minimalMovement = displacement.magnitude <= dragStartDistanceThreshold;
             if (elapsed >= holdDurationThreshold && minimalMovement)
             {
-                EventsManager.InvokeHold();
+                EventsManager.InvokeHoldBegan(currentPosition);
                 holdRaised = true;
             }
         }
@@ -253,40 +199,45 @@ public class InputManager : Singleton<InputManager>
 
         primaryLastPosition = currentPosition;
 
-        if (primaryTouch.phase == UnityEngine.InputSystem.TouchPhase.Ended || primaryTouch.phase == UnityEngine.InputSystem.TouchPhase.Canceled)
+        if (primaryTouch.phase == UnityEngine.InputSystem.TouchPhase.Ended ||
+            primaryTouch.phase == UnityEngine.InputSystem.TouchPhase.Canceled)
+        {
             FinalizePrimaryGesture();
+        }
     }
 
-    /// <summary>
-    /// Dispatches final gesture events on release and resets state.
-    /// </summary>
     private void FinalizePrimaryGesture()
     {
         Vector2 totalDisplacement = primaryLastPosition - primaryStartPosition;
         double elapsed = Time.timeAsDouble - primaryStartTime;
 
-        bool tapped = !swipeRaised && !dragActive && !holdRaised && totalDisplacement.magnitude <= dragStartDistanceThreshold;
+        if (holdRaised)
+            EventsManager.InvokeHoldEnded(primaryLastPosition);
+
+        bool tapped = !swipeRaised && !dragActive && !holdRaised &&
+                      totalDisplacement.magnitude <= dragStartDistanceThreshold;
+
         if (tapped)
             EventsManager.InvokeTap(primaryLastPosition);
 
-        bool qualifiesLateSwipe = !swipeRaised && totalDisplacement.magnitude >= swipeDistanceThreshold && elapsed <= swipeTimeThreshold;
+        bool qualifiesLateSwipe =
+            !swipeRaised && totalDisplacement.magnitude >= swipeDistanceThreshold &&
+            elapsed <= swipeTimeThreshold;
+
         if (qualifiesLateSwipe)
             EventsManager.InvokeSwipe(totalDisplacement);
 
         ResetGestureState();
     }
 
-    /// <summary>
-    /// Cancels the primary gesture without dispatching taps.
-    /// </summary>
     private void CancelPrimaryGesture()
     {
+        if (holdRaised)
+            EventsManager.InvokeHoldEnded(primaryLastPosition);
+
         ResetGestureState();
     }
 
-    /// <summary>
-    /// Clears primary gesture tracking data.
-    /// </summary>
     private void ResetGestureState()
     {
         primaryGestureActive = false;
@@ -298,12 +249,11 @@ public class InputManager : Singleton<InputManager>
         swipeRaised = false;
         dragActive = false;
     }
+
     #endregion
 
     #region Pinch Gestures
-    /// <summary>
-    /// Handles pinch detection and dispatch.
-    /// </summary>
+
     private void HandlePinchGesture()
     {
         if (Touch.activeTouches.Count < 2)
@@ -331,9 +281,11 @@ public class InputManager : Singleton<InputManager>
         }
 
         float magnitudeDelta = Mathf.Abs(currentVector.magnitude - pinchPreviousVector.magnitude);
+
         if (magnitudeDelta >= pinchDistanceThreshold)
         {
             Vector2 delta = currentVector - pinchPreviousVector;
+
             if (currentVector.magnitude < pinchPreviousVector.magnitude)
                 EventsManager.InvokePinchIn(delta);
             else
@@ -343,14 +295,11 @@ public class InputManager : Singleton<InputManager>
         pinchPreviousVector = currentVector;
     }
 
-    /// <summary>
-    /// Resets pinch tracking.
-    /// </summary>
     private void ResetPinchState()
     {
         pinchActive = false;
         pinchPreviousVector = Vector2.zero;
     }
-    #endregion
+
     #endregion
 }

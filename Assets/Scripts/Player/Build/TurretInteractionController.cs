@@ -2,6 +2,7 @@ using Player.Inventory;
 using Scriptables.Turrets;
 using UnityEngine;
 using UnityEngine.InputSystem.EnhancedTouch;
+using UnityEngine.EventSystems;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 
@@ -116,6 +117,19 @@ namespace Player.Build
             if (!EnhancedTouchSupport.enabled)
                 return;
 
+            GameManager manager = GameManager.Instance;
+            if (manager != null && manager.IsGamePaused)
+            {
+                ResetHoldState();
+                if (dragActive)
+                {
+                    RestoreCachedTurret();
+                    ResetDragState();
+                }
+
+                return;
+            }
+
             if (!allowReposition && !allowPerspective)
                 return;
 
@@ -152,6 +166,9 @@ namespace Player.Build
             {
                 Touch candidate = Touch.activeTouches[i];
                 if (candidate.phase != TouchPhase.Began)
+                    continue;
+
+                if (IsTouchOverUi(candidate))
                     continue;
 
                 PooledTurret turret;
@@ -420,6 +437,12 @@ namespace Player.Build
         private bool TryHitTurret(Vector2 screenPosition, out PooledTurret turret)
         {
             turret = null;
+            if (float.IsNaN(screenPosition.x) || float.IsNaN(screenPosition.y))
+                return false;
+
+            if (float.IsInfinity(screenPosition.x) || float.IsInfinity(screenPosition.y))
+                return false;
+
             Camera cameraToUse = interactionCamera != null ? interactionCamera : Camera.main;
             if (cameraToUse == null)
                 return false;
@@ -431,6 +454,18 @@ namespace Player.Build
 
             turret = hitInfo.collider.GetComponentInParent<PooledTurret>();
             return turret != null;
+        }
+
+        /// <summary>
+        /// Returns true if the touch is currently over a UI element.
+        /// </summary>
+        private bool IsTouchOverUi(Touch touch)
+        {
+            EventSystem system = EventSystem.current;
+            if (system == null)
+                return false;
+
+            return system.IsPointerOverGameObject(touch.touchId);
         }
 
         /// <summary>

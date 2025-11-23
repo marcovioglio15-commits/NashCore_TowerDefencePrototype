@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2613323de97700041ad000c78c3d64cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  <DontDestroyOnLoad>k__BackingField: 0
+  <DontDestroyOnLoad>k__BackingField: 1
   swipeDistanceThreshold: 20
   swipeTimeThreshold: 0.35
   dragStartDistanceThreshold: 8
