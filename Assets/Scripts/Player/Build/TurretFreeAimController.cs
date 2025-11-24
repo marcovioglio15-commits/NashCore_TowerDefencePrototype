@@ -83,6 +83,8 @@ namespace Player.Build
         private bool[] cachedRendererStates;
         private bool uiArmed;
         private bool reticleHoldActive;
+        private WaitForSeconds cachedFreeAimInterDelay;
+        private float cachedFreeAimDelaySeconds;
         private Transform[] yawFollowTargets;
         private Quaternion[] yawFollowBaseRotations;
         private bool phaseAllowsFreeAim = true;
@@ -399,33 +401,55 @@ namespace Player.Build
             TurretStatSnapshot stats = activeTurret.ActiveStats;
             float cadence = Mathf.Max(FireCD, stats.FreeAimCadenceSeconds);
             fireCooldownTimer = cadence;
-            StartCoroutine(FireBurstRoutine(stats));
+            Vector3 forward = ResolveFireForward();
+            Transform spawnOrigin = ResolveFreeAimSpawnOrigin();
+            Vector3 upAxis = ResolveFireUpAxis();
+
+            bool needsCoroutine = stats.FreeAimProjectilesPerShot > 1 && stats.FreeAimPattern == TurretFirePattern.Consecutive && stats.FreeAimInterProjectileDelay > 0f;
+            if (needsCoroutine)
+            {
+                StartCoroutine(FireBurstRoutine(stats, forward, spawnOrigin, upAxis));
+                return;
+            }
+
+            FireProjectiles(stats, forward, spawnOrigin, upAxis);
         }
 
         /// <summary>
         /// Executes manual burst spawning using free-aim fire settings.
         /// </summary>
-        private IEnumerator FireBurstRoutine(TurretStatSnapshot stats)
+        private IEnumerator FireBurstRoutine(TurretStatSnapshot stats, Vector3 forward, Transform spawnOrigin, Vector3 upAxis)
         {
             if (activeTurret == null || !activeTurret.HasDefinition)
                 yield break;
 
             int projectiles = Mathf.Max(1, stats.FreeAimProjectilesPerShot);
             TurretFirePattern pattern = stats.FreeAimPattern;
-            bool useDelay = pattern == TurretFirePattern.Consecutive && stats.FreeAimInterProjectileDelay > 0f;
-            WaitForSeconds delay = useDelay ? new WaitForSeconds(stats.FreeAimInterProjectileDelay) : null;
-            Vector3 forward = ResolveFireForward();
-            Transform spawnOrigin = ResolveFreeAimSpawnOrigin();
-            Vector3 upAxis = ResolveFireUpAxis();
+            WaitForSeconds delay = ResolveInterProjectileDelay(stats.FreeAimInterProjectileDelay);
 
             for (int i = 0; i < projectiles; i++)
             {
                 Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, stats.FreeAimConeAngleDegrees, i, projectiles, upAxis);
                 TurretFireUtility.SpawnProjectile(activeTurret, direction, spawnOrigin, freeAimProjectileOffset);
 
-                bool shouldDelay = useDelay && i < projectiles - 1;
-                if (shouldDelay && delay != null)
+                bool shouldDelay = delay != null && i < projectiles - 1;
+                if (shouldDelay)
                     yield return delay;
+            }
+        }
+
+        /// <summary>
+        /// Fires projectiles immediately when no stagger is required.
+        /// </summary>
+        private void FireProjectiles(TurretStatSnapshot stats, Vector3 forward, Transform spawnOrigin, Vector3 upAxis)
+        {
+            int projectiles = Mathf.Max(1, stats.FreeAimProjectilesPerShot);
+            TurretFirePattern pattern = stats.FreeAimPattern;
+
+            for (int i = 0; i < projectiles; i++)
+            {
+                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, stats.FreeAimConeAngleDegrees, i, projectiles, upAxis);
+                TurretFireUtility.SpawnProjectile(activeTurret, direction, spawnOrigin, freeAimProjectileOffset);
             }
         }
         #endregion
@@ -720,6 +744,23 @@ namespace Player.Build
             Quaternion offsetRotation = BuildOffsetRotation();
             Vector3 forward = baseRotation * offsetRotation * Vector3.forward;
             return forward.normalized;
+        }
+
+        /// <summary>
+        /// Caches inter-projectile delay instances to reduce allocations during sustained fire.
+        /// </summary>
+        private WaitForSeconds ResolveInterProjectileDelay(float delaySeconds)
+        {
+            if (delaySeconds <= 0f)
+                return null;
+
+            if (cachedFreeAimInterDelay == null || !Mathf.Approximately(cachedFreeAimDelaySeconds, delaySeconds))
+            {
+                cachedFreeAimDelaySeconds = delaySeconds;
+                cachedFreeAimInterDelay = new WaitForSeconds(delaySeconds);
+            }
+
+            return cachedFreeAimInterDelay;
         }
 
         /// <summary>

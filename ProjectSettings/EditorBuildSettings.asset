@@ -12,5 +12,5 @@ EditorBuildSettings:
     path: Assets/Scenes/TestingScenes/TS_TowersPositioning.unity
     guid: 787ac04e5762c234d902c683e36eddd6
   m_configObjects:
-    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 7b043ce73ed58b34f800bc10a3f63aeb, type: 3}
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 7f6f3212a8c741f3ae7ed6cd7e63d7ce, type: 3}
   m_UseUCBPForAssetBundles: 0

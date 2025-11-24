@@ -1,10 +1,9 @@
+using System.Collections.Generic;
 using Player.Inventory;
 using Scriptables.Turrets;
 using UnityEngine;
-using UnityEngine.InputSystem.EnhancedTouch;
 using UnityEngine.EventSystems;
-using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
-using TouchPhase = UnityEngine.InputSystem.TouchPhase;
+using UnityEngine.InputSystem;
 
 namespace Player.Build
 {
@@ -39,9 +38,9 @@ namespace Player.Build
         #endregion
 
         #region Runtime State
-        private Finger trackedFinger;
         private PooledTurret trackedTurret;
         private Vector2 fingerStartPosition;
+        private Vector2 primaryCurrentPosition;
         private float holdTimer;
         private bool perspectiveTriggered;
         private bool dragActive;
@@ -54,9 +53,19 @@ namespace Player.Build
         private float dragStartDistanceSqr;
         private Vector3 debugHoldWorldPosition;
         private bool debugHasHoldReference;
+        private bool primaryContactActive;
+        private bool secondaryContactActive;
+        private bool holdActive;
+        private bool holdMonitorAttached;
+        private TouchControls touchControls;
+        private TouchControls.TouchActions touchActions;
+        private InputAction primaryContactAction;
+        private InputAction primaryPositionAction;
+        private InputAction secondaryContactAction;
         private bool allowReposition = true;
         private bool allowPerspective = true;
         private bool allowHoldFeedback = true;
+        private static readonly List<RaycastResult> uiRaycastBuffer = new List<RaycastResult>(8);
         #endregion
         #endregion
 
@@ -78,6 +87,7 @@ namespace Player.Build
             EventsManager.BuildablePlacementResolved += HandlePlacementResolved;
             EventsManager.GamePhaseChanged += HandleGamePhaseChanged;
             SyncPhasePermissions();
+            InitializeInputBindings();
         }
 
         /// <summary>
@@ -90,7 +100,9 @@ namespace Player.Build
             if (dragActive || awaitingPlacementResolution)
                 RestoreCachedTurret();
 
-            trackedFinger = null;
+            TeardownInputBindings();
+            ResetDragState();
+            ResetHoldState();
             trackedTurret = null;
             dragActive = false;
             awaitingPlacementResolution = false;
@@ -109,82 +121,158 @@ namespace Player.Build
             CacheThresholds();
         }
 
-        /// <summary>
-        /// Evaluates touch state to drive hold and drag behaviour.
-        /// </summary>
-        private void Update()
-        {
-            if (!EnhancedTouchSupport.enabled)
-                return;
-
-            GameManager manager = GameManager.Instance;
-            if (manager != null && manager.IsGamePaused)
-            {
-                ResetHoldState();
-                if (dragActive)
-                {
-                    RestoreCachedTurret();
-                    ResetDragState();
-                }
-
-                return;
-            }
-
-            if (!allowReposition && !allowPerspective)
-                return;
-
-            if (dragActive)
-            {
-                UpdateActiveDrag();
-                return;
-            }
-
-            if (trackedFinger != null)
-            {
-                UpdateActiveHold();
-                return;
-            }
-
-            TryBeginHold();
-        }
         #endregion
 
         #region Interaction Flow
+
         /// <summary>
-        /// Attempts to latch onto a touch that just began over a turret.
+        /// Initializes input action references and subscriptions.
         /// </summary>
-        private void TryBeginHold()
+        private void InitializeInputBindings()
         {
+            InputManager manager = InputManager.Instance;
+            if (manager == null)
+            {
+                Debug.LogError("TurretInteractionController requires InputManager.");
+                enabled = false;
+                return;
+            }
+
+            touchControls = manager.TouchControls;
+            if (touchControls == null)
+            {
+                Debug.LogError("TurretInteractionController requires TouchControls to be initialized.");
+                enabled = false;
+                return;
+            }
+
+            touchActions = touchControls.Touch;
+            primaryContactAction = touchActions.PrimaryContact;
+            primaryPositionAction = touchActions.PrimaryPosition;
+            secondaryContactAction = touchActions.SecondaryContact;
+
+            primaryContactAction.started += OnPrimaryContactStarted;
+            primaryContactAction.canceled += OnPrimaryContactCanceled;
+            primaryPositionAction.performed += OnPrimaryPositionChanged;
+            secondaryContactAction.started += OnSecondaryContactStarted;
+            secondaryContactAction.canceled += OnSecondaryContactCanceled;
+        }
+
+        /// <summary>
+        /// Removes input action subscriptions and clears timers.
+        /// </summary>
+        private void TeardownInputBindings()
+        {
+            DetachHoldMonitor();
+
+            if (primaryContactAction != null)
+            {
+                primaryContactAction.started -= OnPrimaryContactStarted;
+                primaryContactAction.canceled -= OnPrimaryContactCanceled;
+            }
+
+            if (primaryPositionAction != null)
+                primaryPositionAction.performed -= OnPrimaryPositionChanged;
+
+            if (secondaryContactAction != null)
+            {
+                secondaryContactAction.started -= OnSecondaryContactStarted;
+                secondaryContactAction.canceled -= OnSecondaryContactCanceled;
+            }
+
+            touchControls = null;
+        }
+
+        /// <summary>
+        /// Handles primary contact start and attempts to acquire a turret target.
+        /// </summary>
+        private void OnPrimaryContactStarted(InputAction.CallbackContext context)
+        {
+            primaryContactActive = true;
+
+            GameManager manager = GameManager.Instance;
+            if (manager != null && manager.IsGamePaused)
+                return;
+
             if (!allowReposition && !allowPerspective)
                 return;
 
-            int touches = Touch.activeTouches.Count;
-            if (touches == 0)
+            primaryCurrentPosition = primaryPositionAction.ReadValue<Vector2>();
+
+            if (IsPointerOverUi(primaryCurrentPosition))
                 return;
 
-            for (int i = 0; i < touches; i++)
+            PooledTurret turret;
+            if (!TryHitTurret(primaryCurrentPosition, out turret))
+                return;
+
+            trackedTurret = turret;
+            fingerStartPosition = primaryCurrentPosition;
+            holdTimer = 0f;
+            perspectiveTriggered = false;
+            dragActive = false;
+            holdActive = true;
+            UpdateHoldIndicator(0f);
+            debugHoldWorldPosition = turret.transform.position;
+            debugHasHoldReference = true;
+            AttachHoldMonitor();
+        }
+
+        /// <summary>
+        /// Updates the active hold or drag when the primary position changes.
+        /// </summary>
+        private void OnPrimaryPositionChanged(InputAction.CallbackContext context)
+        {
+            primaryCurrentPosition = context.ReadValue<Vector2>();
+
+            if (dragActive)
             {
-                Touch candidate = Touch.activeTouches[i];
-                if (candidate.phase != TouchPhase.Began)
-                    continue;
-
-                if (IsTouchOverUi(candidate))
-                    continue;
-
-                PooledTurret turret;
-                if (!TryHitTurret(candidate.screenPosition, out turret))
-                    continue;
-
-                trackedFinger = candidate.finger;
-                trackedTurret = turret;
-                fingerStartPosition = candidate.screenPosition;
-                holdTimer = 0f;
-                perspectiveTriggered = false;
-                UpdateHoldIndicator(0f);
-                debugHoldWorldPosition = turret.transform.position;
-                debugHasHoldReference = true;
-                break;
+                UpdateActiveDrag(primaryCurrentPosition);
+                return;
             }
+
+            if (holdActive)
+                UpdateActiveHold();
+        }
+
+        /// <summary>
+        /// Finalizes hold or drag when the primary contact ends.
+        /// </summary>
+        private void OnPrimaryContactCanceled(InputAction.CallbackContext context)
+        {
+            primaryContactActive = false;
+
+            if (dragActive)
+            {
+                dragActive = false;
+                awaitingPlacementResolution = true;
+                EventsManager.InvokeBuildableDragEnded(primaryCurrentPosition);
+            }
+
+            ResetHoldState();
+            DetachHoldMonitor();
+        }
+
+        /// <summary>
+        /// Cancels hold logic when a secondary contact begins (e.g., pinch).
+        /// </summary>
+        private void OnSecondaryContactStarted(InputAction.CallbackContext context)
+        {
+            secondaryContactActive = true;
+            if (dragActive)
+            {
+                RestoreCachedTurret();
+                ResetDragState();
+            }
+            ResetHoldState();
+        }
+
+        /// <summary>
+        /// Releases the secondary contact flag when it ends.
+        /// </summary>
+        private void OnSecondaryContactCanceled(InputAction.CallbackContext context)
+        {
+            secondaryContactActive = false;
         }
 
         /// <summary>
@@ -192,14 +280,26 @@ namespace Player.Build
         /// </summary>
         private void UpdateActiveHold()
         {
-            Touch trackedTouch;
-            if (!TryGetTrackedTouch(out trackedTouch))
+            GameManager manager = GameManager.Instance;
+            if (manager != null && manager.IsGamePaused)
+            {
+                if (dragActive)
+                {
+                    RestoreCachedTurret();
+                    ResetDragState();
+                }
+
+                ResetHoldState();
+                return;
+            }
+
+            if (!primaryContactActive)
             {
                 ResetHoldState();
                 return;
             }
 
-            if (trackedTouch.phase == TouchPhase.Ended || trackedTouch.phase == TouchPhase.Canceled)
+            if (secondaryContactActive)
             {
                 ResetHoldState();
                 return;
@@ -218,7 +318,7 @@ namespace Player.Build
             float normalized = perspectiveHoldDuration > 0f ? Mathf.Clamp01(holdTimer / perspectiveHoldDuration) : 1f;
             UpdateHoldIndicator(normalized);
 
-            Vector2 displacement = trackedTouch.screenPosition - fingerStartPosition;
+            Vector2 displacement = primaryCurrentPosition - fingerStartPosition;
             float sqrMagnitude = displacement.sqrMagnitude;
 
             bool withinTolerance = sqrMagnitude <= holdToleranceSqr;
@@ -237,23 +337,14 @@ namespace Player.Build
             if (sqrMagnitude < dragStartDistanceSqr)
                 return;
 
-            BeginDrag(trackedTouch);
+            BeginDrag(primaryCurrentPosition);
         }
 
         /// <summary>
         /// Updates drag preview events while the finger remains active.
         /// </summary>
-        private void UpdateActiveDrag()
+        private void UpdateActiveDrag(Vector2 currentPosition)
         {
-            Touch trackedTouch;
-            if (!TryGetTrackedTouch(out trackedTouch))
-            {
-                RestoreCachedTurret();
-                ResetDragState();
-                return;
-            }
-
-            Vector2 currentPosition = trackedTouch.screenPosition;
             Vector2 delta = currentPosition - lastDragPosition;
             if (delta.sqrMagnitude > 0.01f)
             {
@@ -261,13 +352,47 @@ namespace Player.Build
                 lastDragPosition = currentPosition;
             }
 
-            if (trackedTouch.phase != TouchPhase.Ended && trackedTouch.phase != TouchPhase.Canceled)
+            if (!primaryContactActive)
+            {
+                dragActive = false;
+                awaitingPlacementResolution = true;
+                EventsManager.InvokeBuildableDragEnded(currentPosition);
+            }
+        }
+
+        /// <summary>
+        /// Attaches the hold timer to the input update loop.
+        /// </summary>
+        private void AttachHoldMonitor()
+        {
+            if (holdMonitorAttached)
                 return;
 
-            dragActive = false;
-            awaitingPlacementResolution = true;
-            EventsManager.InvokeBuildableDragEnded(currentPosition);
-            trackedFinger = null;
+            InputSystem.onAfterUpdate += HandleHoldTick;
+            holdMonitorAttached = true;
+        }
+
+        /// <summary>
+        /// Detaches the hold timer when idle.
+        /// </summary>
+        private void DetachHoldMonitor()
+        {
+            if (!holdMonitorAttached)
+                return;
+
+            InputSystem.onAfterUpdate -= HandleHoldTick;
+            holdMonitorAttached = false;
+        }
+
+        /// <summary>
+        /// Advances hold timing without a per-frame MonoBehaviour Update.
+        /// </summary>
+        private void HandleHoldTick()
+        {
+            if (!holdActive)
+                return;
+
+            UpdateActiveHold();
         }
         #endregion
 
@@ -275,7 +400,7 @@ namespace Player.Build
         /// <summary>
         /// Begins relocation by despawning the current turret and routing drag events.
         /// </summary>
-        private void BeginDrag(Touch trackedTouch)
+        private void BeginDrag(Vector2 screenPosition)
         {
             if (!allowReposition)
             {
@@ -316,9 +441,9 @@ namespace Player.Build
             }
 
             dragActive = true;
-            lastDragPosition = trackedTouch.screenPosition;
+            lastDragPosition = screenPosition;
             EventsManager.InvokeBuildableRelocationBegan(cachedDefinition);
-            EventsManager.InvokeBuildableDragBegan(cachedDefinition, trackedTouch.screenPosition);
+            EventsManager.InvokeBuildableDragBegan(cachedDefinition, screenPosition);
             trackedTurret = null;
             HideHoldIndicator();
         }
@@ -392,7 +517,6 @@ namespace Player.Build
         {
             dragActive = false;
             awaitingPlacementResolution = false;
-            trackedFinger = null;
         }
 
         /// <summary>
@@ -400,35 +524,15 @@ namespace Player.Build
         /// </summary>
         private void ResetHoldState()
         {
-            trackedFinger = null;
+            holdActive = false;
+            primaryContactActive = false;
+            secondaryContactActive = false;
             trackedTurret = null;
             holdTimer = 0f;
             perspectiveTriggered = false;
             HideHoldIndicator();
             debugHasHoldReference = false;
-        }
-
-        /// <summary>
-        /// Retrieves the current touch associated with the tracked finger.
-        /// </summary>
-        private bool TryGetTrackedTouch(out Touch trackedTouch)
-        {
-            trackedTouch = default;
-            if (trackedFinger == null)
-                return false;
-
-            int touches = Touch.activeTouches.Count;
-            for (int i = 0; i < touches; i++)
-            {
-                Touch candidate = Touch.activeTouches[i];
-                if (candidate.finger != trackedFinger)
-                    continue;
-
-                trackedTouch = candidate;
-                return true;
-            }
-
-            return false;
+            DetachHoldMonitor();
         }
 
         /// <summary>
@@ -457,15 +561,21 @@ namespace Player.Build
         }
 
         /// <summary>
-        /// Returns true if the touch is currently over a UI element.
+        /// Returns true if the provided screen position overlaps a UI element.
         /// </summary>
-        private bool IsTouchOverUi(Touch touch)
+        private bool IsPointerOverUi(Vector2 screenPosition)
         {
             EventSystem system = EventSystem.current;
             if (system == null)
                 return false;
 
-            return system.IsPointerOverGameObject(touch.touchId);
+            uiRaycastBuffer.Clear();
+            PointerEventData eventData = new PointerEventData(system);
+            eventData.position = screenPosition;
+            system.RaycastAll(eventData, uiRaycastBuffer);
+            bool overUi = uiRaycastBuffer.Count > 0;
+            uiRaycastBuffer.Clear();
+            return overUi;
         }
 
         /// <summary>
