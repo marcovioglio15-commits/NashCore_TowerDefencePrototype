@@ -17,7 +17,7 @@ public enum TurretFirePattern
 {
     None,
     Consecutive,
-    Cone
+    Bazooka
 }
 
 /// <summary>

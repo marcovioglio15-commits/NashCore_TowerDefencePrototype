@@ -501,7 +501,7 @@ namespace Player.Build
             Transform spawnOrigin = ResolveFreeAimSpawnOrigin();
             Vector3 upAxis = ResolveFireUpAxis();
 
-            bool needsCoroutine = stats.FreeAimProjectilesPerShot > 1 && stats.FreeAimPattern == TurretFirePattern.Consecutive && stats.FreeAimInterProjectileDelay > 0f;
+            bool needsCoroutine = stats.FreeAimProjectilesPerShot > 1 && (stats.FreeAimPattern == TurretFirePattern.Consecutive || stats.FreeAimPattern == TurretFirePattern.Bazooka) && stats.FreeAimInterProjectileDelay > 0f;
             if (needsCoroutine)
             {
                 StartCoroutine(FireBurstRoutine(stats, forward, spawnOrigin, upAxis));
@@ -519,14 +519,17 @@ namespace Player.Build
             if (activeTurret == null || !activeTurret.HasDefinition)
                 yield break;
 
+            ProjectileDefinition projectileDefinition = activeTurret.Definition != null ? activeTurret.Definition.Projectile : null;
+            float splashRadius = projectileDefinition != null ? Mathf.Max(0f, projectileDefinition.SplashRadius) : 0f;
             int projectiles = Mathf.Max(1, stats.FreeAimProjectilesPerShot);
             TurretFirePattern pattern = stats.FreeAimPattern;
             WaitForSeconds delay = ResolveInterProjectileDelay(stats.FreeAimInterProjectileDelay);
 
             for (int i = 0; i < projectiles; i++)
             {
-                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, stats.FreeAimConeAngleDegrees, i, projectiles, upAxis);
-                TurretFireUtility.SpawnProjectile(activeTurret, direction, spawnOrigin, freeAimProjectileOffset);
+                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, splashRadius, i, projectiles, upAxis);
+                float patternSplash = pattern == TurretFirePattern.Bazooka ? splashRadius : 0f;
+                TurretFireUtility.SpawnProjectile(activeTurret, direction, spawnOrigin, freeAimProjectileOffset, patternSplash);
 
                 bool shouldDelay = delay != null && i < projectiles - 1;
                 if (shouldDelay)
@@ -539,13 +542,16 @@ namespace Player.Build
         /// </summary>
         private void FireProjectiles(TurretStatSnapshot stats, Vector3 forward, Transform spawnOrigin, Vector3 upAxis)
         {
+            ProjectileDefinition projectileDefinition = activeTurret != null && activeTurret.Definition != null ? activeTurret.Definition.Projectile : null;
+            float splashRadius = projectileDefinition != null ? Mathf.Max(0f, projectileDefinition.SplashRadius) : 0f;
             int projectiles = Mathf.Max(1, stats.FreeAimProjectilesPerShot);
             TurretFirePattern pattern = stats.FreeAimPattern;
 
             for (int i = 0; i < projectiles; i++)
             {
-                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, stats.FreeAimConeAngleDegrees, i, projectiles, upAxis);
-                TurretFireUtility.SpawnProjectile(activeTurret, direction, spawnOrigin, freeAimProjectileOffset);
+                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, splashRadius, i, projectiles, upAxis);
+                float patternSplash = pattern == TurretFirePattern.Bazooka ? splashRadius : 0f;
+                TurretFireUtility.SpawnProjectile(activeTurret, direction, spawnOrigin, freeAimProjectileOffset, patternSplash);
             }
         }
         #endregion
@@ -878,7 +884,7 @@ namespace Player.Build
         }
 
         /// <summary>
-        /// Provides the up axis used to distribute cone fire from the current perspective.
+        /// Provides the up axis used to distribute projectile offsets from the current perspective.
         /// </summary>
         private Vector3 ResolveFireUpAxis()
         {

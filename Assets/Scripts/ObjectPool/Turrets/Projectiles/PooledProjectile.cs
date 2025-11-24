@@ -35,6 +35,7 @@ namespace Scriptables.Turrets
         private readonly RaycastHit[] hitBuffer = new RaycastHit[8];
         private readonly Collider[] damageBuffer = new Collider[12];
         private int appliedHits;
+        private float activeSplashRadius;
         #endregion
 
         #region IDamage
@@ -61,7 +62,7 @@ namespace Scriptables.Turrets
         /// </summary>
         public PooledProjectile OnSpawn()
         {
-            ProjectileSpawnContext context = new ProjectileSpawnContext(defaultClass, transform.position, transform.forward, 1f, transform.parent, source: null, sourceLayer: gameObject.layer);
+            ProjectileSpawnContext context = new ProjectileSpawnContext(defaultClass, transform.position, transform.forward, 1f, transform.parent, source: null, sourceLayer: gameObject.layer, overrideSplashRadius: 0f);
             PooledProjectile spawned = OnSpawn(context);
             return spawned;
         }
@@ -81,6 +82,7 @@ namespace Scriptables.Turrets
 
             ApplyTransform(context);
             ConfigureTravel(context);
+            ConfigureImpactProfile(context);
             ScheduleAutoDespawn();
             appliedHits = 0;
             return this;
@@ -97,11 +99,12 @@ namespace Scriptables.Turrets
             travelSpeed = 0f;
             traveledDistance = 0f;
             lifetimeTimer = 0f;
-            lastContext = new ProjectileSpawnContext(defaultClass, Vector3.zero, Vector3.forward, 1f, null, null, 0);
+            lastContext = new ProjectileSpawnContext(defaultClass, Vector3.zero, Vector3.forward, 1f, null, null, 0, 0f);
             activeDefinition = defaultClass;
             sourceTransform = null;
             sourceLayer = 0;
             appliedHits = 0;
+            activeSplashRadius = 0f;
         }
         #endregion
 
@@ -126,13 +129,18 @@ namespace Scriptables.Turrets
             if (ShouldDespawn())
                 OnDespawn();
         }
-
+#if UNITY_EDITOR
         /// <summary>
         /// Draws distance and probe previews for debug purposes.
         /// </summary>
         private void OnDrawGizmosSelected()
         {
-            if (!drawTravelGizmos || !HasDefinition)
+            if(defaultClass != null && defaultClass.SplashRadius > 0f)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawWireSphere(transform.position, defaultClass.SplashRadius);
+            }
+            if (!drawTravelGizmos)
                 return;
 
             Gizmos.color = gizmoColor;
@@ -141,10 +149,11 @@ namespace Scriptables.Turrets
             Gizmos.DrawLine(transform.position, transform.position + travelDirection * projectedDistance);
             float probeRadius = activeDefinition != null ? Mathf.Max(0.01f, activeDefinition.DamageProbeRadius) : 0.1f;
             Gizmos.DrawWireSphere(transform.position, probeRadius);
-            if (activeDefinition != null && activeDefinition.SplashRadius > 0f)
-                Gizmos.DrawWireSphere(transform.position, activeDefinition.SplashRadius);
+            if (activeSplashRadius > 0f)
+                Gizmos.DrawWireSphere(transform.position, activeSplashRadius);
         }
-        #endregion
+#endif
+#endregion
 
         #region Public 
         public ProjectileDefinition Definition
@@ -247,7 +256,7 @@ namespace Scriptables.Turrets
         /// </summary>
         private void ApplyDamageAtPoint(Collider primaryCollider, Vector3 impactPoint)
         {
-            float areaRadius = Mathf.Max(activeDefinition.DamageProbeRadius, activeDefinition.SplashRadius);
+            float areaRadius = Mathf.Max(activeDefinition.DamageProbeRadius, activeSplashRadius);
             ApplyDamageToCollider(primaryCollider, impactPoint);
             int found = Physics.OverlapSphereNonAlloc(impactPoint, areaRadius, damageBuffer, ~0, QueryTriggerInteraction.Collide);
             for (int i = 0; i < found; i++)
@@ -348,6 +357,15 @@ namespace Scriptables.Turrets
             lifetimeTimer = 0f;
             sourceTransform = context.Source;
             sourceLayer = context.SourceLayer;
+        }
+
+        /// <summary>
+        /// Configures impact splash radius using definition or spawn override.
+        /// </summary>
+        private void ConfigureImpactProfile(ProjectileSpawnContext context)
+        {
+            float overrideRadius = context.OverrideSplashRadius;
+            activeSplashRadius = overrideRadius > 0f ? overrideRadius : activeDefinition.SplashRadius;
         }
 
         /// <summary>

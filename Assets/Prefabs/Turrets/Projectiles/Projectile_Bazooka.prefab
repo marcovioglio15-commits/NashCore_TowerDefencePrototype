@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5652278225428952820}
   - component: {fileID: 7471823979336599820}
   m_Layer: 7
-  m_Name: Projectile_Cone
+  m_Name: Projectile_Bazooka
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

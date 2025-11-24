@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Scriptables.Turrets
 {
@@ -38,7 +39,7 @@ namespace Scriptables.Turrets
         [Tooltip("Targeting and engagement configuration.")]
         [SerializeField] private TargetingSettings targeting = new TargetingSettings(16f, 240f, 130f, 0.5f, 0.75f);
         [Tooltip("Fire mode configuration for automatic targeting.")]
-        [SerializeField]private FireModeSettings automaticFire = new FireModeSettings(0.45f, 3, 0.08f, TurretFirePattern.Cone, 18f);
+        [SerializeField]private FireModeSettings automaticFire = new FireModeSettings(0.45f, 3, 0.08f, TurretFirePattern.Bazooka, 0f);
         [Tooltip("Fire mode configuration for first-person free aim.")]
         [SerializeField]private FireModeSettings freeAimFire = new FireModeSettings(0.25f, 1, 0.0f, TurretFirePattern.Consecutive, 0f);
         [SerializeField]
@@ -235,26 +236,19 @@ namespace Scriptables.Turrets
             private float interProjectileDelay;
 
             [SerializeField]
-            [Tooltip("Pattern used to position multiple projectiles.")]
+            [Tooltip("Pattern used to position multiple projectiles or trigger splash impacts.")]
             private TurretFirePattern pattern;
-
-            [SerializeField]
-            [Tooltip("Cone width in degrees when the pattern uses cone distribution.")]
-            private float coneAngleDegrees;
 
             public float CadenceSeconds { get { return cadenceSeconds; } }
             public int ProjectilesPerShot { get { return projectilesPerShot; } }
             public float InterProjectileDelay { get { return interProjectileDelay; } }
             public TurretFirePattern Pattern { get { return pattern; } }
-            public float ConeAngleDegrees { get { return coneAngleDegrees; } }
-
-            public FireModeSettings(float cadenceSeconds, int projectilesPerShot, float interProjectileDelay, TurretFirePattern pattern, float coneAngleDegrees)
+            public FireModeSettings(float cadenceSeconds, int projectilesPerShot, float interProjectileDelay, TurretFirePattern pattern, float legacyConeAngle)
             {
                 this.cadenceSeconds = Mathf.Max(0.02f, cadenceSeconds);
                 this.projectilesPerShot = Mathf.Max(1, projectilesPerShot);
                 this.interProjectileDelay = Mathf.Max(0f, interProjectileDelay);
                 this.pattern = pattern;
-                this.coneAngleDegrees = Mathf.Max(0f, coneAngleDegrees);
             }
         }
 
@@ -414,10 +408,6 @@ namespace Scriptables.Turrets
             private float automaticInterProjectileDelay;
 
             [SerializeField]
-            [Tooltip("Multiplier applied to automatic fire cone angle while in free aim.")]
-            private float automaticConeAngleDegrees;
-
-            [SerializeField]
             [Tooltip("Multiplier applied to free aim fire cadence while in free aim.")]
             private float freeAimCadenceSeconds;
 
@@ -428,10 +418,6 @@ namespace Scriptables.Turrets
             [SerializeField]
             [Tooltip("Multiplier applied to inter-projectile delay for free aim fire while in free aim.")]
             private float freeAimInterProjectileDelay;
-
-            [SerializeField]
-            [Tooltip("Multiplier applied to free aim cone angle while in free aim.")]
-            private float freeAimConeAngleDegrees;
 
             [SerializeField]
             [Tooltip("Multiplier applied to magazine size while in free aim.")]
@@ -492,11 +478,9 @@ namespace Scriptables.Turrets
             public float AutomaticCadenceSeconds { get { return automaticCadenceSeconds; } }
             public float AutomaticProjectilesPerShot { get { return automaticProjectilesPerShot; } }
             public float AutomaticInterProjectileDelay { get { return automaticInterProjectileDelay; } }
-            public float AutomaticConeAngleDegrees { get { return automaticConeAngleDegrees; } }
             public float FreeAimCadenceSeconds { get { return freeAimCadenceSeconds; } }
             public float FreeAimProjectilesPerShot { get { return freeAimProjectilesPerShot; } }
             public float FreeAimInterProjectileDelay { get { return freeAimInterProjectileDelay; } }
-            public float FreeAimConeAngleDegrees { get { return freeAimConeAngleDegrees; } }
             public float MagazineSize { get { return magazineSize; } }
             public float ReloadSeconds { get { return reloadSeconds; } }
             public float MaxHeat { get { return maxHeat; } }
@@ -510,7 +494,7 @@ namespace Scriptables.Turrets
             public float Clearance { get { return clearance; } }
             public float PlacementHeightOffset { get { return placementHeightOffset; } }
 
-            public FreeAimMultipliers(float health, float armor, float magicResistance, float passiveRegenPerSecond, float range, float turnRate, float deadZoneRadius, float retargetInterval, float automaticCadenceSeconds, float automaticProjectilesPerShot, float automaticInterProjectileDelay, float automaticConeAngleDegrees, float freeAimCadenceSeconds, float freeAimProjectilesPerShot, float freeAimInterProjectileDelay, float freeAimConeAngleDegrees, float magazineSize, float reloadSeconds, float maxHeat, float heatDissipationSeconds, float modeSwitchSeconds, float buildCost, float upkeepCost, float salvageDelay, float refundRatio, float footprintRadius, float clearance, float placementHeightOffset)
+            public FreeAimMultipliers(float health, float armor, float magicResistance, float passiveRegenPerSecond, float range, float turnRate, float deadZoneRadius, float retargetInterval, float automaticCadenceSeconds, float automaticProjectilesPerShot, float automaticInterProjectileDelay, float freeAimCadenceSeconds, float freeAimProjectilesPerShot, float freeAimInterProjectileDelay, float magazineSize, float reloadSeconds, float maxHeat, float heatDissipationSeconds, float modeSwitchSeconds, float buildCost, float upkeepCost, float salvageDelay, float refundRatio, float footprintRadius, float clearance, float placementHeightOffset)
             {
                 this.health = Mathf.Max(0.01f, health);
                 this.armor = Mathf.Max(0f, armor);
@@ -523,11 +507,9 @@ namespace Scriptables.Turrets
                 this.automaticCadenceSeconds = Mathf.Max(0.01f, automaticCadenceSeconds);
                 this.automaticProjectilesPerShot = Mathf.Max(0f, automaticProjectilesPerShot);
                 this.automaticInterProjectileDelay = Mathf.Max(0f, automaticInterProjectileDelay);
-                this.automaticConeAngleDegrees = Mathf.Max(0f, automaticConeAngleDegrees);
                 this.freeAimCadenceSeconds = Mathf.Max(0.01f, freeAimCadenceSeconds);
                 this.freeAimProjectilesPerShot = Mathf.Max(0f, freeAimProjectilesPerShot);
                 this.freeAimInterProjectileDelay = Mathf.Max(0f, freeAimInterProjectileDelay);
-                this.freeAimConeAngleDegrees = Mathf.Max(0f, freeAimConeAngleDegrees);
                 this.magazineSize = Mathf.Max(0f, magazineSize);
                 this.reloadSeconds = Mathf.Max(0f, reloadSeconds);
                 this.maxHeat = Mathf.Max(0f, maxHeat);
@@ -558,11 +540,9 @@ namespace Scriptables.Turrets
                         automaticCadenceSeconds: 1f,
                         automaticProjectilesPerShot:1f,
                         automaticInterProjectileDelay: 1f,
-                        automaticConeAngleDegrees: 1f,
                         freeAimCadenceSeconds: 1f,
                         freeAimProjectilesPerShot: 1f,
                         freeAimInterProjectileDelay: 1f,
-                        freeAimConeAngleDegrees: 1f,
                         magazineSize: 1f,
                         reloadSeconds: 1f,
                         maxHeat: 1f,

@@ -166,6 +166,10 @@ namespace Scriptables.Turrets
         [Tooltip("Layer applied to the source to filter friendly fire.")]
         private int sourceLayer;
 
+        [SerializeField]
+        [Tooltip("Optional splash radius override applied at spawn time.")]
+        private float overrideSplashRadius;
+
         public ProjectileDefinition Definition { get { return definition; } }
         public Vector3 Position { get { return position; } }
         public Vector3 Direction { get { return direction; } }
@@ -173,8 +177,9 @@ namespace Scriptables.Turrets
         public Transform Parent { get { return parent; } }
         public Transform Source { get { return source; } }
         public int SourceLayer { get { return sourceLayer; } }
+        public float OverrideSplashRadius { get { return overrideSplashRadius; } }
 
-        public ProjectileSpawnContext(ProjectileDefinition definition, Vector3 position, Vector3 direction, float speedMultiplier = 1f, Transform parent = null, Transform source = null, int sourceLayer = 0)
+        public ProjectileSpawnContext(ProjectileDefinition definition, Vector3 position, Vector3 direction, float speedMultiplier = 1f, Transform parent = null, Transform source = null, int sourceLayer = 0, float overrideSplashRadius = 0f)
         {
             this.definition = definition;
             this.position = position;
@@ -183,6 +188,7 @@ namespace Scriptables.Turrets
             this.parent = parent;
             this.source = source;
             this.sourceLayer = sourceLayer;
+            this.overrideSplashRadius = Mathf.Max(0f, overrideSplashRadius);
         }
 
         public ProjectileSpawnContext WithDefinition(ProjectileDefinition projectileDefinition)
@@ -197,6 +203,13 @@ namespace Scriptables.Turrets
             ProjectileSpawnContext updated = this;
             updated.source = newSource;
             updated.sourceLayer = newLayer;
+            return updated;
+        }
+
+        public ProjectileSpawnContext WithSplashOverride(float splashRadius)
+        {
+            ProjectileSpawnContext updated = this;
+            updated.overrideSplashRadius = Mathf.Max(0f, splashRadius);
             return updated;
         }
     }

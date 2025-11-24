@@ -28,7 +28,7 @@ namespace Player.Build
 
         [Header("Timing")]
         [Tooltip("Seconds that a turret must be held before drag relocation becomes available.")]
-        [SerializeField] private float repositionHoldDuration = 0.35f;
+        [SerializeField] private float repositionHoldDuration = 0.1f;
         [Tooltip("Seconds required to trigger a first-person perspective request on the held turret.")]
         [SerializeField] private float perspectiveHoldDuration = 1.35f;
         [Tooltip("Maximum finger travel in pixels tolerated while charging hold actions.")]
@@ -328,33 +328,30 @@ namespace Player.Build
                 return;
             }
 
-            if (perspectiveTriggered)
-                return;
+            Vector2 displacement = primaryCurrentPosition - fingerStartPosition;
+            float sqrMagnitude = displacement.sqrMagnitude;
 
             holdTimer += Time.deltaTime;
             float normalized = perspectiveHoldDuration > 0f ? Mathf.Clamp01(holdTimer / perspectiveHoldDuration) : 1f;
             UpdateHoldIndicator(normalized);
 
-            Vector2 displacement = primaryCurrentPosition - fingerStartPosition;
-            float sqrMagnitude = displacement.sqrMagnitude;
-
             bool withinTolerance = sqrMagnitude <= holdToleranceSqr;
+            bool canStartDrag = allowReposition && holdTimer >= repositionHoldDuration && sqrMagnitude >= dragStartDistanceSqr;
+
+            if (canStartDrag)
+            {
+                BeginDrag(primaryCurrentPosition);
+                return;
+            }
+
+            if (perspectiveTriggered)
+                return;
+
             if (allowPerspective && withinTolerance && holdTimer >= perspectiveHoldDuration)
             {
                 RequestPerspectiveMode();
                 return;
             }
-
-            if (holdTimer < repositionHoldDuration)
-                return;
-
-            if (!allowReposition)
-                return;
-
-            if (sqrMagnitude < dragStartDistanceSqr)
-                return;
-
-            BeginDrag(primaryCurrentPosition);
         }
 
         /// <summary>

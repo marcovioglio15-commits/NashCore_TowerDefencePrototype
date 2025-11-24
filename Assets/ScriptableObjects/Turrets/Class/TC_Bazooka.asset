@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8bf5d7b23271204f84f3adf1da36685, type: 3}
-  m_Name: TC_ConeShooter
+  m_Name: TC_Bazooka
   m_EditorClassIdentifier: 
   key: TC_ConeShooter
   displayName: TC_ConeShooter
@@ -33,16 +33,16 @@ MonoBehaviour:
     retargetInterval: 0.75
   automaticFire:
     cadenceSeconds: 0.45
-    projectilesPerShot: 3
+    projectilesPerShot: 1
     interProjectileDelay: 0.08
     pattern: 2
-    coneAngleDegrees: 18
+    impactSplashRadius: 18
   freeAimFire:
     cadenceSeconds: 0.25
     projectilesPerShot: 1
     interProjectileDelay: 0
     pattern: 2
-    coneAngleDegrees: 0
+    impactSplashRadius: 18
   modeSwitchSeconds: 1
   economy:
     buildCost: 120
@@ -72,11 +72,11 @@ MonoBehaviour:
     automaticCadenceSeconds: 1
     automaticProjectilesPerShot: 1
     automaticInterProjectileDelay: 1
-    automaticConeAngleDegrees: 1
+    automaticImpactSplashRadius: 1
     freeAimCadenceSeconds: 1
     freeAimProjectilesPerShot: 1
     freeAimInterProjectileDelay: 1
-    freeAimConeAngleDegrees: 1
+    freeAimImpactSplashRadius: 1
     magazineSize: 1
     reloadSeconds: 1
     maxHeat: 1

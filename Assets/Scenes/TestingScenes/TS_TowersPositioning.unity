@@ -2005,7 +2005,7 @@ GameObject:
   - component: {fileID: 1238438957}
   - component: {fileID: 1238438956}
   - component: {fileID: 1238438955}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5002,12 +5002,20 @@ PrefabInstance:
       value: -5
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
+      propertyPath: originOffset.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: originOffset.z
       value: -5
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: graph.Array.size
       value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
+      propertyPath: floorLayerMask.m_Bits
+      value: 512
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: walkableNodes.Array.size
@@ -5027,11 +5035,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: walkableNodes.Array.data[0].x
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: walkableNodes.Array.data[0].y
-      value: 5
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: walkableNodes.Array.data[1].x
@@ -5059,19 +5067,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: buildableNodes.Array.data[3].x
-      value: 6
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: buildableNodes.Array.data[3].y
-      value: 6
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: buildableNodes.Array.data[4].x
-      value: 7
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: buildableNodes.Array.data[4].y
-      value: 7
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: buildableNodes.Array.data[5].x
@@ -5079,27 +5087,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: buildableNodes.Array.data[5].y
-      value: 9
-      objectReference: {fileID: 0}
-    - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
-      propertyPath: buildableNodes.Array.data[6].x
-      value: 9
-      objectReference: {fileID: 0}
-    - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
-      propertyPath: buildableNodes.Array.data[6].y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
-      propertyPath: buildableNodes.Array.data[7].x
+      propertyPath: buildableNodes.Array.data[6].x
       value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
-      propertyPath: buildableNodes.Array.data[7].y
+      propertyPath: buildableNodes.Array.data[6].y
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
-      propertyPath: buildableNodes.Array.data[8].x
+      propertyPath: buildableNodes.Array.data[7].x
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
+      propertyPath: buildableNodes.Array.data[7].y
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
+      propertyPath: buildableNodes.Array.data[8].x
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 1411469786676770763, guid: bea3ad24cfaf11a46950fbf45b69e6ee, type: 3}
       propertyPath: buildableNodes.Array.data[8].y

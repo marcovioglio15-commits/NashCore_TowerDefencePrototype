@@ -149,7 +149,7 @@ namespace Scriptables.Turrets
 
         #region Targeting
         /// <summary>
-        /// Attempts to select the closest valid enemy within the cone of fire.
+        /// Attempts to select the closest valid enemy within the fire arc.
         /// </summary>
         private void AcquireTarget(TurretStatSnapshot stats)
         {
@@ -219,7 +219,7 @@ namespace Scriptables.Turrets
         }
 
         /// <summary>
-        /// Checks whether any enemy remains inside the fire area and cone.
+        /// Checks whether any enemy remains inside the fire area and arc.
         /// </summary>
         private bool HasAnyTargetInFireArc(TurretStatSnapshot stats)
         {
@@ -358,18 +358,21 @@ namespace Scriptables.Turrets
             if (pooledTurret == null || !pooledTurret.HasDefinition)
                 yield break;
 
+            ProjectileDefinition projectileDefinition = pooledTurret.Definition.Projectile;
+            float splashRadius = projectileDefinition != null ? Mathf.Max(0f, projectileDefinition.SplashRadius) : 0f;
             TurretFirePattern pattern = stats.AutomaticPattern;
             int projectiles = Mathf.Max(1, stats.AutomaticProjectilesPerShot);
             WaitForSeconds interDelay = null;
-            bool useDelay = pattern == TurretFirePattern.Consecutive && stats.AutomaticInterProjectileDelay > 0f;
+            bool useDelay = (pattern == TurretFirePattern.Consecutive || pattern == TurretFirePattern.Bazooka) && stats.AutomaticInterProjectileDelay > 0f;
             if (useDelay)
                 interDelay = new WaitForSeconds(stats.AutomaticInterProjectileDelay);
 
             Vector3 upAxis = ResolveAutomaticUpAxis();
             for (int i = 0; i < projectiles; i++)
             {
-                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, stats.AutomaticConeAngleDegrees, i, projectiles, upAxis);
-                TurretFireUtility.SpawnProjectile(pooledTurret, direction);
+                Vector3 direction = TurretFireUtility.ResolveProjectileDirection(forward, pattern, splashRadius, i, projectiles, upAxis);
+                float patternSplash = pattern == TurretFirePattern.Bazooka ? splashRadius : 0f;
+                TurretFireUtility.SpawnProjectile(pooledTurret, direction, splashRadiusOverride: patternSplash);
 
                 bool shouldDelay = useDelay && i < projectiles - 1;
                 if (shouldDelay && interDelay != null)

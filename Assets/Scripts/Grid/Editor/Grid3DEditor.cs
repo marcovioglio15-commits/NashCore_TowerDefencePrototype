@@ -41,6 +41,8 @@ namespace Grid.Editor
         private SerializedProperty drawGridGizmosProperty;
         private SerializedProperty drawNodeCoordinatesProperty;
         private SerializedProperty wireColorProperty;
+        private SerializedProperty floorLayerMaskProperty;
+        private SerializedProperty floorProbeHalfHeightProperty;
         #endregion
 
         #region Runtime State
@@ -71,6 +73,8 @@ namespace Grid.Editor
             drawGridGizmosProperty = serializedObject.FindProperty("drawGridGizmos");
             drawNodeCoordinatesProperty = serializedObject.FindProperty("drawNodeCoordinates");
             wireColorProperty = serializedObject.FindProperty("wireColor");
+            floorLayerMaskProperty = serializedObject.FindProperty("floorLayerMask");
+            floorProbeHalfHeightProperty = serializedObject.FindProperty("floorProbeHalfHeight");
         }
 
         /// <summary>
@@ -101,6 +105,8 @@ namespace Grid.Editor
             EditorGUILayout.PropertyField(gridSizeZProperty);
             EditorGUILayout.PropertyField(originOffsetProperty);
             EditorGUILayout.PropertyField(cellSizeProperty);
+            EditorGUILayout.PropertyField(floorLayerMaskProperty);
+            EditorGUILayout.PropertyField(floorProbeHalfHeightProperty);
             EditorGUILayout.Space();
         }
 
@@ -274,15 +280,35 @@ namespace Grid.Editor
                     spawnSet.Remove(coords);
                     break;
                 case NodePaintMode.Walkable:
+                    if (walkableSet.Contains(coords))
+                    {
+                        walkableSet.Remove(coords);
+                        break;
+                    }
                     walkableSet.Add(coords);
                     break;
                 case NodePaintMode.Buildable:
+                    if (buildableSet.Contains(coords))
+                    {
+                        buildableSet.Remove(coords);
+                        break;
+                    }
                     buildableSet.Add(coords);
                     break;
                 case NodePaintMode.EnemyGoal:
+                    if (goalSet.Contains(coords))
+                    {
+                        goalSet.Remove(coords);
+                        break;
+                    }
                     goalSet.Add(coords);
                     break;
                 case NodePaintMode.EnemySpawn:
+                    if (spawnSet.Contains(coords))
+                    {
+                        spawnSet.Remove(coords);
+                        break;
+                    }
                     spawnSet.Add(coords);
                     break;
             }

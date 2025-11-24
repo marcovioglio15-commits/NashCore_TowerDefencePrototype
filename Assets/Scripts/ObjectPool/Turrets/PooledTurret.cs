@@ -29,7 +29,7 @@ namespace Scriptables.Turrets
         private Transform pitchRoot;
 
         [SerializeField]
-        [Tooltip("Projectile origin used for cone visualization and muzzle placement.")]
+        [Tooltip("Projectile origin used for bazooka splash visualization and muzzle placement.")]
         private Transform muzzle;
 
         [Header("Free Aim Presentation")]
@@ -345,27 +345,26 @@ namespace Scriptables.Turrets
             if (muzzle == null)
                 return;
 
-            if (Definition.AutomaticFire.ProjectilesPerShot > 1 && Definition.AutomaticFire.Pattern == TurretFirePattern.Cone)
-                DrawConeGizmo(activeStats.AutomaticConeAngleDegrees, activeStats.Range);
+            ProjectileDefinition projectileDefinition = Definition.Projectile;
+            float splashRadius = projectileDefinition != null ? Mathf.Max(0f, projectileDefinition.SplashRadius) : 0f;
+            if (Definition.AutomaticFire.Pattern == TurretFirePattern.Bazooka && splashRadius > 0f)
+                DrawSplashGizmo(splashRadius);
 
-            if (Definition.FreeAimFire.ProjectilesPerShot > 1 && Definition.FreeAimFire.Pattern == TurretFirePattern.Cone)
-                DrawConeGizmo(activeStats.FreeAimConeAngleDegrees, activeStats.Range * 0.75f);
+            if (Definition.FreeAimFire.Pattern == TurretFirePattern.Bazooka && splashRadius > 0f)
+                DrawSplashGizmo(splashRadius);
         }
 
         /// <summary>
-        /// Draws a wireframe cone preview from the muzzle.
+        /// Draws a wireframe sphere preview for bazooka splash radius.
         /// </summary>
-        private void DrawConeGizmo(float angle, float length)
+        private void DrawSplashGizmo(float radius)
         {
-            Vector3 forward = muzzle.forward;
-            Quaternion leftRotation = Quaternion.AngleAxis(-angle * 0.5f, Vector3.up);
-            Quaternion rightRotation = Quaternion.AngleAxis(angle * 0.5f, Vector3.up);
-            Vector3 left = leftRotation * forward * length;
-            Vector3 right = rightRotation * forward * length;
+            float clampedRadius = Mathf.Max(0f, radius);
+            if (clampedRadius <= 0f)
+                return;
 
-            Gizmos.DrawLine(muzzle.position, muzzle.position + left);
-            Gizmos.DrawLine(muzzle.position, muzzle.position + right);
-            Gizmos.DrawWireSphere(muzzle.position + forward * length, activeStats.Clearance + 0.05f);
+            Gizmos.color = new Color(1f, 0.55f, 0.2f, 0.5f);
+            Gizmos.DrawWireSphere(muzzle.position, clampedRadius);
         }
 
         #endregion

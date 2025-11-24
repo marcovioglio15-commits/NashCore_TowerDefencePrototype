@@ -28,6 +28,16 @@ namespace Grid
         [Tooltip("Size of each cell in world units.")]
         private float cellSize = 1.0f;
 
+        [Header("Height Sampling")]
+
+        [SerializeField]
+        [Tooltip("Layer mask used to snap node height to the nearest floor surface.")]
+        private LayerMask floorLayerMask;
+
+        [SerializeField]
+        [Tooltip("Half-height in meters used when probing above and below each node for the Floor surface.")]
+        private float floorProbeHalfHeight = 6f;
+
         [Header("Static Map Configuration")]
 
         [SerializeField]
@@ -133,6 +143,16 @@ namespace Grid
             if (cellSize < 0.01f)
                 cellSize = 0.01f;
 
+            if (floorProbeHalfHeight < 0.25f)
+                floorProbeHalfHeight = 0.25f;
+
+            if (floorLayerMask == 0)
+            {
+                int floorLayer = LayerMask.NameToLayer("Floor");
+                if (floorLayer >= 0)
+                    floorLayerMask = 1 << floorLayer;
+            }
+
             ClampArrayCoords(walkableNodes);
             ClampArrayCoords(buildableNodes);
             ClampArrayCoords(enemyGoalCells);
@@ -150,6 +170,15 @@ namespace Grid
         /// </summary>
         private void InitializeGrid()
         {
+            if (floorLayerMask == 0)
+            {
+                int floorLayer = LayerMask.NameToLayer("Floor");
+                if (floorLayer >= 0)
+                    floorLayerMask = 1 << floorLayer;
+            }
+            if (floorProbeHalfHeight < 0.25f)
+                floorProbeHalfHeight = 0.25f;
+
             if (gridSizeX < 1 || gridSizeZ < 1)
             {
                 graph = System.Array.Empty<GridNode>();
@@ -166,7 +195,7 @@ namespace Grid
                 {
                     int index = ToIndex(x, z);
                     NodeState staticState = ResolveStaticState(x, z);
-                    Vector3 position = GridToWorld(x, z);
+                    Vector3 position = ResolveWorldPosition(x, z);
                     graph[index] = new GridNode(index, x, z, position, staticState);
 
                     GridNode node = graph[index];
@@ -311,6 +340,42 @@ namespace Grid
         }
 
         /// <summary>
+        /// Computes the world position for a grid coordinate, snapping height to the nearest floor surface.
+        /// </summary>
+        private Vector3 ResolveWorldPosition(int x, int z)
+        {
+            float wx = Origin.x + (x + 0.5f) * cellSize;
+            float wz = Origin.z + (z + 0.5f) * cellSize;
+            float baseY = Origin.y;
+            Vector3 basePosition = new Vector3(wx, baseY, wz);
+            float sampledY = SampleFloorHeight(basePosition);
+            basePosition.y = sampledY;
+            return basePosition;
+        }
+
+        /// <summary>
+        /// Samples upward and downward to locate the closest floor surface around the given position.
+        /// </summary>
+        private float SampleFloorHeight(Vector3 basePosition)
+        {
+            if (floorLayerMask == 0)
+                return basePosition.y;
+
+            float probeDistance = Mathf.Max(floorProbeHalfHeight, cellSize);
+            Vector3 upperOrigin = basePosition + Vector3.up * probeDistance;
+            Vector3 lowerOrigin = basePosition + Vector3.down * probeDistance;
+            RaycastHit hitInfo;
+
+            if (Physics.Raycast(upperOrigin, Vector3.down, out hitInfo, probeDistance * 2f, floorLayerMask, QueryTriggerInteraction.Ignore))
+                return hitInfo.point.y;
+
+            if (Physics.Raycast(lowerOrigin, Vector3.up, out hitInfo, probeDistance * 2f, floorLayerMask, QueryTriggerInteraction.Ignore))
+                return hitInfo.point.y;
+
+            return basePosition.y;
+        }
+
+        /// <summary>
         /// Safe accessor that returns the node at coordinates when available.
         /// </summary>
         public bool TryGetNode(Vector2Int coords, out GridNode node)
@@ -389,12 +454,19 @@ namespace Grid
             return true;
         }
 
+        /// <summary>
+        /// Returns the cached world position for the provided coordinate, falling back to a sampled value.
+        /// </summary>
         public Vector3 GridToWorld(int x, int z)
         {
-            float wx = Origin.x + (x + 0.5f) * cellSize;
-            float wz = Origin.z + (z + 0.5f) * cellSize;
-            float wy = Origin.y;
-            return new Vector3(wx, wy, wz);
+            if (graph != null && graph.Length == gridSizeX * gridSizeZ)
+            {
+                int index = ToIndex(x, z);
+                if (index >= 0 && index < graph.Length && graph[index] != null)
+                    return graph[index].WorldPosition;
+            }
+
+            return ResolveWorldPosition(x, z);
         }
 
         #endregion

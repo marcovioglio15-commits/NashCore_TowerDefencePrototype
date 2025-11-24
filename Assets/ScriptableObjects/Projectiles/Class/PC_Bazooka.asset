@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6d62f2e62a6c17c4e9140b8e42c19703, type: 3}
-  m_Name: PC_Cone
+  m_Name: PC_Bazooka
   m_EditorClassIdentifier: 
   key: projectile_default
   icon: {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
@@ -20,10 +20,11 @@ MonoBehaviour:
   criticalChance: 0.1
   criticalMultiplier: 1.5
   pierceFalloffRatio: 0.2
-  speed: 22
+  damageProbeRadius: 0.25
+  speed: 1
   maxPiercedTargets: 1
   lifetimeSeconds: 5
   maxDistance: 25
-  splashRadius: 0
+  splashRadius: 1
   statusChance: 0.15
   statusDurationSeconds: 1.75
