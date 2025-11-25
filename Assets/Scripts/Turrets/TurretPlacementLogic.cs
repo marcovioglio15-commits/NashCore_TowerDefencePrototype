@@ -18,6 +18,8 @@ namespace Scriptables.Turrets
         [SerializeField] private TurretPoolSO fallbackTurretPool;
         [Tooltip("Parent transform for spawned turrets to keep hierarchy tidy.")]
         [SerializeField]private Transform turretRoot;
+        [Tooltip("Free-aim controller used to register auxiliary renderers per placed turret.")]
+        [SerializeField] private Player.Build.TurretFreeAimController freeAimController;
 
         [Header("Debug")]
         [Tooltip("Draws placement gizmos at the last checked coordinate.")]
@@ -114,6 +116,7 @@ namespace Scriptables.Turrets
 
             grid.SetTowerState(cell, true);
             liveTurrets[cell] = turret;
+            RegisterCellAuxiliaryWalls(cell, turret);
             return turret;
         }
 
@@ -131,6 +134,7 @@ namespace Scriptables.Turrets
             if (grid != null)
                 grid.SetTowerState(cell, false);
 
+            UnregisterCellAuxiliaryWalls(cell, turret);
             if (turret != null)
                 turret.RequestDespawn();
 
@@ -145,6 +149,37 @@ namespace Scriptables.Turrets
             return liveTurrets.TryGetValue(cell, out turret);
         }
 
+        #endregion
+
+        #region Helpers
+        /// <summary>
+        /// Registers auxiliary renderers tied to the placed turret for the target cell.
+        /// </summary>
+        private void RegisterCellAuxiliaryWalls(Vector2Int cell, PooledTurret turret)
+        {
+            if (freeAimController == null || grid == null || turret == null)
+                return;
+
+            Renderer[] renderers = grid.GetBuildableWallRenderers(cell);
+            if (renderers == null || renderers.Length == 0)
+            {
+                freeAimController.UnregisterAuxiliaryRenderers(turret);
+                return;
+            }
+
+            freeAimController.RegisterAuxiliaryRenderers(turret, renderers);
+        }
+
+        /// <summary>
+        /// Clears auxiliary renderer bindings when a turret is removed from a cell.
+        /// </summary>
+        private void UnregisterCellAuxiliaryWalls(Vector2Int cell, PooledTurret turret)
+        {
+            if (freeAimController == null || turret == null)
+                return;
+
+            freeAimController.UnregisterAuxiliaryRenderers(turret);
+        }
         #endregion
 
         #region Gizmos

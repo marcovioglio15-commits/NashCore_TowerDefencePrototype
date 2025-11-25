@@ -92,6 +92,12 @@ namespace Grid
         [Tooltip("Color used for wireframe lines.")]
         private Color wireColor = new Color(1.0f, 1.0f, 1.0f, 0.15f);
 
+        [Header("Visibility Bindings")]
+
+        [SerializeField]
+        [Tooltip("Walls hidden only when a turret is possessed on the matching buildable node.")]
+        private BuildableWallBinding[] buildableWallBindings;
+
         #endregion
 
         #region Runtime
@@ -100,6 +106,21 @@ namespace Grid
         private GridNode[] graph;
         private bool gridInitialized;
 
+        #endregion
+
+        #region Nested Types
+        [System.Serializable]
+        /// <summary>
+        /// Authoring container pairing a buildable cell with renderers that hide while its turret is possessed.
+        /// </summary>
+        public struct BuildableWallBinding
+        {
+            [Tooltip("Buildable grid coordinate associated with this visibility rule.")]
+            public Vector2Int Coordinates;
+
+            [Tooltip("Renderers hidden while the turret on this node is possessed.")]
+            public Renderer[] HiddenWalls;
+        }
         #endregion
 
         #region Properties
@@ -157,6 +178,7 @@ namespace Grid
             ClampArrayCoords(buildableNodes);
             ClampArrayCoords(enemyGoalCells);
             ClampArrayCoords(enemySpawnCells);
+            ClampBindingCoords();
 
             InitializeGrid();
         }
@@ -286,6 +308,29 @@ namespace Grid
                     c.y = gridSizeZ - 1;
 
                 arr[i] = c;
+            }
+        }
+
+        /// <summary>
+        /// Ensures buildable wall binding coordinates stay within grid bounds.
+        /// </summary>
+        private void ClampBindingCoords()
+        {
+            if (buildableWallBindings == null)
+                return;
+
+            for (int i = 0; i < buildableWallBindings.Length; i++)
+            {
+                Vector2Int clamped = buildableWallBindings[i].Coordinates;
+                if (clamped.x < 0)
+                    clamped.x = 0;
+                if (clamped.y < 0)
+                    clamped.y = 0;
+                if (clamped.x >= gridSizeX)
+                    clamped.x = gridSizeX - 1;
+                if (clamped.y >= gridSizeZ)
+                    clamped.y = gridSizeZ - 1;
+                buildableWallBindings[i].Coordinates = clamped;
             }
         }
 
@@ -467,6 +512,23 @@ namespace Grid
             }
 
             return ResolveWorldPosition(x, z);
+        }
+
+        /// <summary>
+        /// Returns the renderer set associated with a buildable coordinate for possession visibility.
+        /// </summary>
+        public Renderer[] GetBuildableWallRenderers(Vector2Int coords)
+        {
+            if (buildableWallBindings == null || buildableWallBindings.Length == 0)
+                return null;
+
+            for (int i = 0; i < buildableWallBindings.Length; i++)
+            {
+                if (buildableWallBindings[i].Coordinates == coords)
+                    return buildableWallBindings[i].HiddenWalls;
+            }
+
+            return null;
         }
 
         #endregion

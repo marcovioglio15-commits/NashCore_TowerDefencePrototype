@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6637537964218288145}
   - component: {fileID: 1221189801945820933}
   - component: {fileID: 8463089210557255012}
+  - component: {fileID: 275210007497379960}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -54,6 +55,7 @@ MonoBehaviour:
   worldCamera: {fileID: 0}
   snapRadius: 1.5
   snapCellExpansion: 1
+  playerResources: {fileID: 0}
   validPreviewColor: {r: 0.3, g: 0.9, b: 0.4, a: 0.65}
   invalidPreviewColor: {r: 0.9, g: 0.3, b: 0.3, a: 0.5}
   drawPreviewGizmos: 1
@@ -111,8 +113,34 @@ MonoBehaviour:
   cameraLocalOffset: {x: 0, y: 0.1, z: -0.85}
   enterLerpSeconds: 0.4
   exitLerpSeconds: 0.35
+  axisMode: 2
   yawSensitivity: 0.35
   pitchSensitivity: 0.3
-  minPitchDegrees: -30
-  maxPitchDegrees: 55
-  minTapCadenceSeconds: 0.05
+  pitchInputDeadZone: 1.5
+  pitchUpClampDegrees: 55
+  pitchDownClampDegrees: 35
+  fallbackYawClampDegrees: 110
+  clampTurnRate: 1
+  releaseDampSeconds: 0.15
+  releaseMaxDegreesPerSecond: 0
+  FireCD: 0.05
+  freeAimProjectileOffset: {x: 0, y: -0.05, z: 0.1}
+  hideDistance: 0.45
+  hideLerpThreshold: 0.65
+  uiRevealLerpThreshold: 0.85
+  auxiliaryHiddenRenderers: []
+--- !u!114 &275210007497379960
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8778598094827874505}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21e0bb6a5132f03419e9ce55da382183, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  startingHealth: 100
+  damageEnabled: 1

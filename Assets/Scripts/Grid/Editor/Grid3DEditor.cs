@@ -20,7 +20,8 @@ namespace Grid.Editor
             Walkable,
             Buildable,
             EnemyGoal,
-            EnemySpawn
+            EnemySpawn,
+            WallBinding
         }
         #endregion
 
@@ -43,11 +44,15 @@ namespace Grid.Editor
         private SerializedProperty wireColorProperty;
         private SerializedProperty floorLayerMaskProperty;
         private SerializedProperty floorProbeHalfHeightProperty;
+        private SerializedProperty buildableWallBindingsProperty;
         #endregion
 
         #region Runtime State
         private NodePaintMode activePaintMode = NodePaintMode.Walkable;
         private const float ButtonSize = 28f;
+        private Vector2Int selectedBindingCoords = new Vector2Int(-1, -1);
+        private SerializedProperty selectedBindingProperty;
+        private bool hasSelectedBinding;
         #endregion
 
         #region Methods
@@ -75,6 +80,7 @@ namespace Grid.Editor
             wireColorProperty = serializedObject.FindProperty("wireColor");
             floorLayerMaskProperty = serializedObject.FindProperty("floorLayerMask");
             floorProbeHalfHeightProperty = serializedObject.FindProperty("floorProbeHalfHeight");
+            buildableWallBindingsProperty = serializedObject.FindProperty("buildableWallBindings");
         }
 
         /// <summary>
@@ -88,6 +94,7 @@ namespace Grid.Editor
             DrawStateArrays();
             DrawPaintSelector();
             DrawGridPreview();
+            DrawWallBindingPanel();
             DrawColorAndGizmoControls();
 
             serializedObject.ApplyModifiedProperties();
@@ -203,6 +210,22 @@ namespace Grid.Editor
             EditorGUILayout.PropertyField(drawNodeCoordinatesProperty);
             EditorGUILayout.Space();
         }
+
+        /// <summary>
+        /// Displays renderer bindings for the selected buildable node when using the wall binding paint mode.
+        /// </summary>
+        private void DrawWallBindingPanel()
+        {
+            if (!hasSelectedBinding || selectedBindingProperty == null)
+                return;
+
+            EditorGUILayout.LabelField("Wall Visibility Binding", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Selected Cell", $"{selectedBindingCoords.x},{selectedBindingCoords.y}");
+            SerializedProperty wallsProperty = selectedBindingProperty.FindPropertyRelative("HiddenWalls");
+            if (wallsProperty != null)
+                EditorGUILayout.PropertyField(wallsProperty, new GUIContent("Hidden Walls"), true);
+            EditorGUILayout.Space();
+        }
         #endregion
 
         #region Helpers
@@ -271,6 +294,21 @@ namespace Grid.Editor
         /// </summary>
         private void ApplyPaint(Vector2Int coords, HashSet<Vector2Int> walkableSet, HashSet<Vector2Int> buildableSet, HashSet<Vector2Int> goalSet, HashSet<Vector2Int> spawnSet)
         {
+            if (activePaintMode == NodePaintMode.WallBinding)
+            {
+                if (!buildableSet.Contains(coords))
+                {
+                    hasSelectedBinding = false;
+                    selectedBindingProperty = null;
+                    return;
+                }
+
+                hasSelectedBinding = true;
+                selectedBindingCoords = coords;
+                selectedBindingProperty = GetOrCreateBinding(coords);
+                return;
+            }
+
             switch (activePaintMode)
             {
                 case NodePaintMode.None:
@@ -352,6 +390,37 @@ namespace Grid.Editor
             float divisor = 1f / contributions;
             Color averaged = new Color(sum.r * divisor, sum.g * divisor, sum.b * divisor, 1f);
             return averaged;
+        }
+
+        /// <summary>
+        /// Returns the serialized binding property for the provided coordinates, creating one if missing.
+        /// </summary>
+        private SerializedProperty GetOrCreateBinding(Vector2Int coords)
+        {
+            if (buildableWallBindingsProperty == null)
+                return null;
+
+            int count = buildableWallBindingsProperty.arraySize;
+            for (int i = 0; i < count; i++)
+            {
+                SerializedProperty element = buildableWallBindingsProperty.GetArrayElementAtIndex(i);
+                SerializedProperty coordinatesProperty = element != null ? element.FindPropertyRelative("Coordinates") : null;
+                if (coordinatesProperty != null && coordinatesProperty.vector2IntValue == coords)
+                    return element;
+            }
+
+            int newIndex = buildableWallBindingsProperty.arraySize;
+            buildableWallBindingsProperty.InsertArrayElementAtIndex(newIndex);
+            SerializedProperty newElement = buildableWallBindingsProperty.GetArrayElementAtIndex(newIndex);
+            SerializedProperty newCoordinatesProperty = newElement != null ? newElement.FindPropertyRelative("Coordinates") : null;
+            if (newCoordinatesProperty != null)
+                newCoordinatesProperty.vector2IntValue = coords;
+
+            SerializedProperty wallsProperty = newElement != null ? newElement.FindPropertyRelative("HiddenWalls") : null;
+            if (wallsProperty != null)
+                wallsProperty.ClearArray();
+
+            return newElement;
         }
         #endregion
         #endregion
