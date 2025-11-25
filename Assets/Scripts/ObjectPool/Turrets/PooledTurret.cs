@@ -51,8 +51,6 @@ namespace Scriptables.Turrets
         [Tooltip("Renderers disabled while the player possesses the turret to avoid camera clipping.")]
         [Header("Free Aim Presentation")]
         [SerializeField] private Renderer[] freeAimHiddenRenderers;
-        [Tooltip("Transforms rotated horizontally to mirror the possessed camera when any visuals stay visible.")]
-        [SerializeField] private Transform[] freeAimYawTargets;
         [Tooltip("Transforms aligned to the possessed camera with selectable axis following.")]
         [SerializeField] private FreeAimRotationFollower[] freeAimRotationFollowers;
 
@@ -77,7 +75,6 @@ namespace Scriptables.Turrets
         private bool freeAimActive;
         private Quaternion yawBaseRotation;
         private Renderer[] cachedRenderers;
-        private Transform[] cachedYawFallback;
         private FreeAimRotationFollower[] cachedFollowerFallback;
 
         #endregion
@@ -138,14 +135,6 @@ namespace Scriptables.Turrets
         /// <summary>
         /// Optional transforms rotated to follow the possessed camera yaw when visuals remain visible.
         /// </summary>
-        public Transform[] FreeAimYawTargets
-        {
-            get { return freeAimYawTargets; }
-        }
-
-        /// <summary>
-        /// Optional transforms aligned to the possessed camera with explicit axis selection.
-        /// </summary>
         public FreeAimRotationFollower[] FreeAimRotationFollowers
         {
             get { return freeAimRotationFollowers; }
@@ -184,7 +173,6 @@ namespace Scriptables.Turrets
             lastContext = context;
             freeAimActive = false;
             cachedRenderers = null;
-            cachedYawFallback = null;
             cachedFollowerFallback = null;
             ApplyDefinition(context.Definition != null ? context.Definition : defaultDefinition);
             if (!HasDefinition)
@@ -213,7 +201,6 @@ namespace Scriptables.Turrets
             RebuildStats();
             CacheYawBaseRotation();
             cachedRenderers = null;
-            cachedYawFallback = null;
             cachedFollowerFallback = null;
         }
 
@@ -334,23 +321,6 @@ namespace Scriptables.Turrets
         }
 
         /// <summary>
-        /// Returns the transforms that should follow camera yaw while in free aim.
-        /// </summary>
-        public Transform[] GetFreeAimYawFollowTargets()
-        {
-            if (freeAimYawTargets != null && freeAimYawTargets.Length > 0)
-                return freeAimYawTargets;
-
-            if (cachedYawFallback == null || cachedYawFallback.Length == 0)
-            {
-                cachedYawFallback = new Transform[1];
-                cachedYawFallback[0] = yawRoot != null ? yawRoot : transform;
-            }
-
-            return cachedYawFallback;
-        }
-
-        /// <summary>
         /// Returns authored rotation followers with axis selection, falling back to yaw-only when unspecified.
         /// </summary>
         public FreeAimRotationFollower[] GetFreeAimRotationFollowers()
@@ -358,19 +328,12 @@ namespace Scriptables.Turrets
             if (freeAimRotationFollowers != null && freeAimRotationFollowers.Length > 0)
                 return freeAimRotationFollowers;
 
-            Transform[] yawTargets = GetFreeAimYawFollowTargets();
-            if (yawTargets == null || yawTargets.Length == 0)
-                return null;
+            Transform yawTarget = yawRoot != null ? yawRoot : transform;
+            if (cachedFollowerFallback == null || cachedFollowerFallback.Length != 1)
+                cachedFollowerFallback = new FreeAimRotationFollower[1];
 
-            if (cachedFollowerFallback == null || cachedFollowerFallback.Length != yawTargets.Length)
-                cachedFollowerFallback = new FreeAimRotationFollower[yawTargets.Length];
-
-            for (int i = 0; i < yawTargets.Length; i++)
-            {
-                cachedFollowerFallback[i].Target = yawTargets[i];
-                cachedFollowerFallback[i].Axis = FreeAimFollowAxis.HorizontalOnly;
-            }
-
+            cachedFollowerFallback[0].Target = yawTarget;
+            cachedFollowerFallback[0].Axis = FreeAimFollowAxis.HorizontalOnly;
             return cachedFollowerFallback;
         }
 

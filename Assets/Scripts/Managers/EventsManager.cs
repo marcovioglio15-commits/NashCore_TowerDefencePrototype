@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Player.Inventory;
 using Scriptables.Turrets;
 using UnityEngine;
+using Utils.Combat;
 
 public static class EventsManager
 {
@@ -40,6 +41,12 @@ public static class EventsManager
     public static Action<int> PlayerGoldChanged;
     public static Action<int> PlayerGoldEarned;
     public static Action<int, int> PlayerGoldInsufficient;
+    #endregion
+
+    #region Player
+    public static Action<float, float> PlayerHealthChanged;
+    public static Action<IDamage, Vector3, float> PlayerDamaged;
+    public static Action PlayerDeath;
     #endregion
 
     #region Combat Resolution
@@ -83,6 +90,12 @@ public static class EventsManager
     public static void InvokePlayerGoldChanged(int gold)=> PlayerGoldChanged?.Invoke(gold);
     public static void InvokePlayerGoldEarned(int amount)=> PlayerGoldEarned?.Invoke(amount);
     public static void InvokePlayerGoldInsufficient(int currentGold, int requiredGold)=> PlayerGoldInsufficient?.Invoke(currentGold, requiredGold);
+    #endregion
+
+    #region Player
+    public static void InvokePlayerHealthChanged(float currentHealth, float maxHealth)=> PlayerHealthChanged?.Invoke(currentHealth, maxHealth);
+    public static void InvokePlayerDamaged(IDamage damage, Vector3 hitPoint, float currentHealth)=> PlayerDamaged?.Invoke(damage, hitPoint, currentHealth);
+    public static void InvokePlayerDeath()=> PlayerDeath?.Invoke();
     #endregion
 
     #region Combat Resolution
