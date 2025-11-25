@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 1190216664590828053}
   - component: {fileID: 5996793450744963552}
   m_Layer: 0
-  m_Name: PF_WallDoor_PR
+  m_Name: PF_WallDoor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
