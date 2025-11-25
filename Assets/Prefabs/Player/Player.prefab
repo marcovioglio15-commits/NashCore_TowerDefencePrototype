@@ -96,6 +96,7 @@ MonoBehaviour:
   grid: {fileID: 0}
   fallbackTurretPool: {fileID: 0}
   turretRoot: {fileID: 0}
+  freeAimController: {fileID: 0}
   drawPlacementGizmos: 1
 --- !u!114 &8463089210557255012
 MonoBehaviour:
@@ -126,9 +127,71 @@ MonoBehaviour:
   FireCD: 0.05
   freeAimProjectileOffset: {x: 0, y: -0.05, z: 0.1}
   hideDistance: 0.45
-  hideLerpThreshold: 0.65
+  hideLerpThreshold: 0.85
   uiRevealLerpThreshold: 0.85
-  auxiliaryHiddenRenderers: []
+  auxiliaryRendererLayerMask:
+    serializedVersion: 2
+    m_Bits: 1024
+  auxiliaryFreeAimRenderers:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
 --- !u!114 &275210007497379960
 MonoBehaviour:
   m_ObjectHideFlags: 0

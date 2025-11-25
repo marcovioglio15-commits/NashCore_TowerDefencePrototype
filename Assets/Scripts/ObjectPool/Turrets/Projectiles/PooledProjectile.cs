@@ -62,7 +62,7 @@ namespace Scriptables.Turrets
         /// </summary>
         public PooledProjectile OnSpawn()
         {
-            ProjectileSpawnContext context = new ProjectileSpawnContext(defaultClass, transform.position, transform.forward, 1f, transform.parent, source: null, sourceLayer: gameObject.layer, overrideSplashRadius: 0f);
+            ProjectileSpawnContext context = new ProjectileSpawnContext(defaultClass, transform.position, transform.forward, 1f, null, source: null, sourceLayer: gameObject.layer, overrideSplashRadius: 0f);
             PooledProjectile spawned = OnSpawn(context);
             return spawned;
         }
@@ -339,10 +339,7 @@ namespace Scriptables.Turrets
         private void ApplyTransform(ProjectileSpawnContext context)
         {
             transform.SetPositionAndRotation(context.Position, Quaternion.LookRotation(context.Direction, Vector3.up));
-            if (context.Parent != null)
-                transform.SetParent(context.Parent, true);
-            else
-                transform.SetParent(null, false);
+            transform.SetParent(null, false);
         }
 
         /// <summary>

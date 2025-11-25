@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Scriptables.Turrets;
@@ -72,8 +73,11 @@ namespace Player.Build
         [Tooltip("Normalized camera lerp progress at which reticle and exit UI arm.")]
         [Range(0f,1f)]
         [SerializeField] private float uiRevealLerpThreshold = 0.85f;
-        [Tooltip("Additional renderers hidden while lerping into turret perspective to prevent clipping.")]
-        [SerializeField] private Renderer[] auxiliaryHiddenRenderers;
+        [Tooltip("Layer mask used to auto-populate auxiliary renderers shown only during free-aim.")]
+        [Header("Auxiliary Visibility")]
+        [SerializeField] private LayerMask auxiliaryRendererLayerMask;
+        [Tooltip("Renderers auto-collected through the layer mask and shown exclusively during free-aim.")]
+        [SerializeField] private Renderer[] auxiliaryFreeAimRenderers;
         #endregion
 
         #region Runtime State
@@ -98,9 +102,9 @@ namespace Player.Build
         private float pitchDampVelocity;
         private bool cameraOffsetsDirty;
         private bool renderersHiddenDuringFreeAim;
+        private bool auxiliaryShownDuringFreeAim;
         private Renderer[] cachedTurretRenderers;
         private bool[] cachedRendererStates;
-        private bool[] cachedAuxRendererStates;
         private Renderer[] activeAuxiliaryRenderers;
         private bool uiArmed;
         private bool reticleHoldActive;
@@ -110,6 +114,8 @@ namespace Player.Build
         private Quaternion[] rotationFollowerBaseRotations;
         private bool phaseAllowsFreeAim = true;
         private readonly Dictionary<PooledTurret, Renderer[]> auxiliaryRendererMap = new Dictionary<PooledTurret, Renderer[]>();
+        private readonly List<Renderer> auxiliaryRendererBuffer = new List<Renderer>();
+        private bool auxiliaryRuntimeInitialized;
         #endregion
         #endregion
 
@@ -137,6 +143,9 @@ namespace Player.Build
             EventsManager.Tap += HandleTap;
             EventsManager.TurretFreeAimExitRequested += HandleExitRequested;
             EventsManager.GamePhaseChanged += HandleGamePhaseChanged;
+            RefreshAuxiliaryRendererListIfNeeded();
+            if (!freeAimActive)
+                HideAllAuxiliaryRenderers();
             SyncPhasePermissions();
         }
 
@@ -158,6 +167,18 @@ namespace Player.Build
             StopActiveCameraRoutine();
             RestoreCameraTransform();
             ReleaseTurret();
+            HideAllAuxiliaryRenderers();
+        }
+
+        /// <summary>
+        /// Keeps auxiliary renderer bindings synchronized when values change in the editor.
+        /// </summary>
+        private void OnValidate()
+        {
+            if (Application.isPlaying)
+                return;
+
+            RefreshAuxiliaryRendererList();
         }
 
         /// <summary>
@@ -311,9 +332,9 @@ namespace Player.Build
             fireCooldownTimer = 0f;
             cachedTurretRenderers = activeTurret.GetFreeAimRendererSet();
             cachedRendererStates = null;
-            cachedAuxRendererStates = null;
             activeAuxiliaryRenderers = ResolveAuxiliaryRenderers(activeTurret);
             renderersHiddenDuringFreeAim = false;
+            auxiliaryShownDuringFreeAim = false;
             uiArmed = false;
             reticleHoldActive = false;
             currentYawOffset = 0f;
@@ -328,6 +349,7 @@ namespace Player.Build
             CacheCameraState();
             CacheAnchorOrientation();
             CacheRotationFollowers();
+            HideAllAuxiliaryRenderers();
             StartCameraLerpToTurret();
             EventsManager.InvokeTurretFreeAimStarted(activeTurret);
         }
@@ -358,10 +380,10 @@ namespace Player.Build
             reticleHoldActive = false;
             StartCameraReturn();
             EventsManager.InvokeTurretFreeAimEnded(turretToRelease);
+            HideAllAuxiliaryRenderers();
             ShowPossessionRenderers();
             cachedTurretRenderers = null;
             cachedRendererStates = null;
-            cachedAuxRendererStates = null;
             activeAuxiliaryRenderers = null;
             rotationFollowers = null;
             rotationFollowerBaseRotations = null;
@@ -387,13 +409,14 @@ namespace Player.Build
             yawDampVelocity = 0f;
             pitchDampVelocity = 0f;
             cameraOffsetsDirty = false;
+            HideAllAuxiliaryRenderers();
             ShowPossessionRenderers();
             cachedTurretRenderers = null;
             cachedRendererStates = null;
-            cachedAuxRendererStates = null;
             activeAuxiliaryRenderers = null;
             rotationFollowers = null;
             rotationFollowerBaseRotations = null;
+            auxiliaryShownDuringFreeAim = false;
         }
 
         /// <summary>
@@ -413,6 +436,13 @@ namespace Player.Build
             }
 
             auxiliaryRendererMap[turret] = renderers;
+            if (freeAimActive && turret == activeTurret && auxiliaryShownDuringFreeAim)
+            {
+                activeAuxiliaryRenderers = ResolveAuxiliaryRenderers(activeTurret);
+                ShowRendererCollection(activeAuxiliaryRenderers, null);
+            }
+            else
+                SetRendererCollectionEnabled(renderers, false);
         }
 
         /// <summary>
@@ -423,8 +453,22 @@ namespace Player.Build
             if (turret == null)
                 return;
 
+            Renderer[] removedRenderers = null;
             if (auxiliaryRendererMap.ContainsKey(turret))
+            {
+                removedRenderers = auxiliaryRendererMap[turret];
                 auxiliaryRendererMap.Remove(turret);
+            }
+
+            if (freeAimActive && turret == activeTurret)
+            {
+                SetRendererCollectionEnabled(removedRenderers, false);
+                activeAuxiliaryRenderers = ResolveAuxiliaryRenderers(activeTurret);
+                if (auxiliaryShownDuringFreeAim)
+                    ShowRendererCollection(activeAuxiliaryRenderers, null);
+            }
+            else if (!freeAimActive)
+                HideAllAuxiliaryRenderers();
         }
         #endregion
 
@@ -1031,6 +1075,8 @@ namespace Player.Build
             {
                 HidePossessionRenderers();
                 renderersHiddenDuringFreeAim = true;
+                ShowRendererCollection(activeAuxiliaryRenderers, null);
+                auxiliaryShownDuringFreeAim = true;
             }
 
             if (!uiArmed && normalized >= uiRevealLerpThreshold)
@@ -1112,6 +1158,7 @@ namespace Player.Build
             return cachedTurretRenderers;
         }
 
+        #region Auxiliary Visibility
         /// <summary>
         /// Resolves auxiliary renderers registered for the active turret merged with defaults.
         /// </summary>
@@ -1121,7 +1168,7 @@ namespace Player.Build
             if (turret != null && auxiliaryRendererMap.ContainsKey(turret))
                 registered = auxiliaryRendererMap[turret];
 
-            bool hasDefault = auxiliaryHiddenRenderers != null && auxiliaryHiddenRenderers.Length > 0;
+            bool hasDefault = auxiliaryFreeAimRenderers != null && auxiliaryFreeAimRenderers.Length > 0;
             bool hasRegistered = registered != null && registered.Length > 0;
             if (!hasDefault && !hasRegistered)
                 return null;
@@ -1130,18 +1177,104 @@ namespace Player.Build
                 return registered;
 
             if (!hasRegistered)
-                return auxiliaryHiddenRenderers;
+                return auxiliaryFreeAimRenderers;
 
-            int defaultCount = auxiliaryHiddenRenderers.Length;
+            int defaultCount = auxiliaryFreeAimRenderers.Length;
             int registeredCount = registered.Length;
             int total = defaultCount + registeredCount;
             Renderer[] merged = new Renderer[total];
             for (int i = 0; i < defaultCount; i++)
-                merged[i] = auxiliaryHiddenRenderers[i];
+                merged[i] = auxiliaryFreeAimRenderers[i];
             for (int j = 0; j < registeredCount; j++)
                 merged[defaultCount + j] = registered[j];
             return merged;
         }
+
+        /// <summary>
+        /// Refreshes the auxiliary renderer cache using the configured layer mask.
+        /// </summary>
+        private void RefreshAuxiliaryRendererList()
+        {
+            if (auxiliaryRendererLayerMask == 0)
+            {
+                auxiliaryFreeAimRenderers = Array.Empty<Renderer>();
+                return;
+            }
+
+            Renderer[] sceneRenderers = FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            auxiliaryRendererBuffer.Clear();
+            int maskValue = auxiliaryRendererLayerMask.value;
+
+            for (int i = 0; i < sceneRenderers.Length; i++)
+            {
+                Renderer renderer = sceneRenderers[i];
+                if (renderer == null)
+                    continue;
+
+                GameObject rendererObject = renderer.gameObject;
+                int rendererLayerMask = 1 << rendererObject.layer;
+                bool layerIncluded = (maskValue & rendererLayerMask) != 0;
+                if (!layerIncluded)
+                    continue;
+
+                auxiliaryRendererBuffer.Add(renderer);
+            }
+
+            auxiliaryFreeAimRenderers = auxiliaryRendererBuffer.Count > 0 ? auxiliaryRendererBuffer.ToArray() : Array.Empty<Renderer>();
+        }
+
+        /// <summary>
+        /// Builds auxiliary renderer cache once per runtime session to avoid repeated allocations.
+        /// </summary>
+        private void RefreshAuxiliaryRendererListIfNeeded()
+        {
+            if (!Application.isPlaying)
+            {
+                RefreshAuxiliaryRendererList();
+                auxiliaryRuntimeInitialized = false;
+                return;
+            }
+
+            if (auxiliaryRuntimeInitialized)
+                return;
+
+            RefreshAuxiliaryRendererList();
+            auxiliaryRuntimeInitialized = true;
+        }
+
+        /// <summary>
+        /// Forces every auxiliary renderer to remain hidden while not in free-aim.
+        /// </summary>
+        private void HideAllAuxiliaryRenderers()
+        {
+            auxiliaryShownDuringFreeAim = false;
+            SetRendererCollectionEnabled(auxiliaryFreeAimRenderers, false);
+            if (auxiliaryRendererMap.Count == 0)
+                return;
+
+            foreach (KeyValuePair<PooledTurret, Renderer[]> binding in auxiliaryRendererMap)
+                SetRendererCollectionEnabled(binding.Value, false);
+        }
+
+        /// <summary>
+        /// Enables or disables all renderers contained in the provided collection.
+        /// </summary>
+        private void SetRendererCollectionEnabled(Renderer[] renderers, bool enabled)
+        {
+            if (renderers == null || renderers.Length == 0)
+                return;
+
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                Renderer renderer = renderers[i];
+                if (renderer == null)
+                    continue;
+
+                if (renderer.enabled != enabled)
+                    renderer.enabled = enabled;
+            }
+        }
+        #endregion
 
         /// <summary>
         /// Hides turret renderers if the camera approaches the chassis to avoid clipping.
@@ -1161,26 +1294,23 @@ namespace Player.Build
         }
 
         /// <summary>
-        /// Deactivates turret and auxiliary renderers cached on possession.
+        /// Deactivates turret renderers cached on possession.
         /// </summary>
         private void HidePossessionRenderers()
         {
             Renderer[] renderers = ResolveRendererCache();
             HideRendererCollection(renderers, ref cachedRendererStates);
-            HideRendererCollection(activeAuxiliaryRenderers, ref cachedAuxRendererStates);
         }
 
         /// <summary>
-        /// Restores turret and auxiliary renderers visibility after free-aim concludes.
+        /// Restores turret renderers visibility after free-aim concludes.
         /// </summary>
         private void ShowPossessionRenderers()
         {
             renderersHiddenDuringFreeAim = false;
             Renderer[] renderers = ResolveRendererCache();
             ShowRendererCollection(renderers, cachedRendererStates);
-            ShowRendererCollection(activeAuxiliaryRenderers, cachedAuxRendererStates);
             cachedRendererStates = null;
-            cachedAuxRendererStates = null;
         }
 
         /// <summary>
@@ -1254,6 +1384,21 @@ namespace Player.Build
                 Gizmos.color = new Color(0.95f, 0.65f, 0.2f, 0.75f);
                 Gizmos.DrawLine(anchor.position, anchor.position + Quaternion.AngleAxis(-clampHalf, upAxis) * forward * radius);
                 Gizmos.DrawLine(anchor.position, anchor.position + Quaternion.AngleAxis(clampHalf, upAxis) * forward * radius);
+            }
+
+            Renderer[] gizmoRenderers = auxiliaryFreeAimRenderers;
+            if (gizmoRenderers != null && gizmoRenderers.Length > 0)
+            {
+                Gizmos.color = new Color(0.25f, 0.95f, 0.45f, 0.4f);
+                for (int i = 0; i < gizmoRenderers.Length; i++)
+                {
+                    Renderer renderer = gizmoRenderers[i];
+                    if (renderer == null)
+                        continue;
+
+                    Bounds bounds = renderer.bounds;
+                    Gizmos.DrawWireCube(bounds.center, bounds.size);
+                }
             }
         }
 

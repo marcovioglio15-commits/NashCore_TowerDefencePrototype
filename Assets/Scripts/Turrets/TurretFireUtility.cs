@@ -39,7 +39,7 @@ namespace Scriptables.Turrets
             Transform origin = originOverride != null ? originOverride : turret.Muzzle != null ? turret.Muzzle : turret.transform;
             Vector3 spawnOffset = localOffset.HasValue ? localOffset.Value : Vector3.zero;
             Vector3 position = origin.position + origin.TransformVector(spawnOffset);
-            ProjectileSpawnContext context = new ProjectileSpawnContext(projectileDefinition, position, direction, 1f, turret.transform, origin, origin.gameObject.layer, splashRadiusOverride);
+            ProjectileSpawnContext context = new ProjectileSpawnContext(projectileDefinition, position, direction, 1f, null, origin, origin.gameObject.layer, splashRadiusOverride);
             pool.Spawn(projectileDefinition, context);
         }
         #endregion
