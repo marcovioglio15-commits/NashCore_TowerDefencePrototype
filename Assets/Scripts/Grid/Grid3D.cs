@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace Grid
@@ -103,9 +103,13 @@ namespace Grid
         #region Runtime
 
         // Flat array of nodes.
-        private GridNode[] graph;
+        public GridNode[] graph;
         private bool gridInitialized;
 
+        [SerializeField] GridNode start;
+        [SerializeField] GridNode end;
+        [SerializeField] DijkstraInfo path;
+        [SerializeField] GameObject enemy;
         #endregion
 
         #region Nested Types
@@ -148,6 +152,15 @@ namespace Grid
         {
             base.Awake();
             InitializeGrid();
+        }
+
+        private void Start()
+        {
+            TryGetNode(enemySpawnCells[0], out start);
+            TryGetNode(enemyGoalCells[0], out end);
+            path = SearchWithDijkstraAlgorithm(in start, in end);
+            GameObject go = Instantiate(enemy);
+            go.GetComponent<Enemy>().path = path;
         }
 
         /// <summary>
@@ -248,39 +261,57 @@ namespace Grid
 
         #endregion
 
-        public List<GridNode> GetPath(in GridNode start, in GridNode end)
+        #region Dijkstra
+
+        private DijkstraInfo SearchWithDijkstraAlgorithm(in GridNode rootNode, in GridNode endNode)
         {
-            if (start == null || end == null || !graph.Contains(start) || !graph.Contains(end) || start == end)
+            int nodeCount = graph.Length;
+            int[] distancesFromStart = new int[nodeCount];      //contains the distance of the node at index from start node
+            int[] cheapestPreviousPoint = new int[nodeCount];   //contains the index of the best point to reach the node at the current index
+                                                                //Dictionary<int, int> previousDict = new Dictionary<int, int>();
+            for (int i = 0; i < distancesFromStart.Length; i++)
             {
-                Debug.LogError(start == null ? "Given start node cannot be null." : end == null ? "Given end node cannot be null." : !graph.Contains(start) ? "The given start node is not present in the graph." : !graph.Contains(end) ? "The given end node is not present in the graph." : "Given nodes cannot be equal.");
-                return null;
+                //initialize distance vector with max value
+                distancesFromStart[i] = int.MaxValue;
+                //cheapestPreviousPoint[i] = 0;
             }
+            distancesFromStart[rootNode.Index] = 0;
+            PriorityQueue<DijkstraElement> pq = new PriorityQueue<DijkstraElement>(true);
+            pq.Enqueue(new DijkstraElement(rootNode.Index, 0));
 
-            Queue<GridNode> queue = new Queue<GridNode>();
-            List<GridNode> visitedNodes = new List<GridNode>();
-            List<GridNode> path = new List<GridNode>();
-            queue.Enqueue(start);
-            List<GridEdge> edges;
-            GridNode current;
-            GridNode nodeFlag;
-
-            while (queue.Count > 0)
+            //loop until there are nodes to check
+            GridNode currentNode;
+            while (!pq.empty())
             {
-                current = queue.Dequeue();
-                edges = current.GetEdges();
-                for (int i = 0; i < edges.Count; i++)
+                DijkstraElement currentNodeInfo = pq.dequeue_min();        //dequeue the node with the min distance from start
+                int currentNodeIndex = currentNodeInfo.nodeIndex;
+                currentNode = graph[currentNodeIndex];
+
+                currentNode.SortEdgesByCheapest();
+                //for every attached node, check distances
+                for (int i = 0; i < currentNode.edges.Count /*edge[nx].size()*/; i++)
                 {
-                    nodeFlag = edges[i].GetOppositeNode(current);
-                    if (nodeFlag != null && !visitedNodes.Contains(nodeFlag))
+                    //next neighbour
+                    DijkstraElement connectedNodeInfo = new DijkstraElement(currentNode.edges[i].GetOppositeNode(currentNode).Index /*edge[nx][i]*/, currentNode.edges[i].weight /*cost[nx][i]*/);
+
+                    //if next node distance is bigger than current distance + edge weight, update it and add it to the queue, doing this allow to check the other nodes attached to it for cost improvement
+                    if (distancesFromStart[connectedNodeInfo.nodeIndex] > distancesFromStart[currentNodeIndex] + currentNode.edges[i].weight)
                     {
-                        queue.Enqueue(nodeFlag);
-                        visitedNodes.Add(nodeFlag);
+                        distancesFromStart[connectedNodeInfo.nodeIndex] = distancesFromStart[currentNodeIndex] + currentNode.edges[i].weight;
+                        cheapestPreviousPoint[connectedNodeInfo.nodeIndex] = currentNode.Index;
+                        //previousDict[tmp.nodeIndex] = tempNode.index;
+                        pq.Enqueue(new DijkstraElement(connectedNodeInfo.nodeIndex, distancesFromStart[connectedNodeInfo.nodeIndex]));
                     }
                 }
+                //will enter the if when all the roads to the end node are checked and the cheapest one is found (once the logic is here, all edges connected to endNode will be already checked)
+                if (currentNode == endNode)
+                    return new DijkstraInfo(distancesFromStart,/* previousDict,*/ cheapestPreviousPoint);
             }
-            return path;
+
+            return new DijkstraInfo(distancesFromStart,/* previousDict,*/ cheapestPreviousPoint);
         }
 
+        #endregion
 
         #region Helpers
 
@@ -658,6 +689,25 @@ namespace Grid
 
             gridInitialized = false;
             InitializeGrid();
+        }
+        #endregion
+
+        #region NestedClasses
+        private class DijkstraElement : IComparable<DijkstraElement>
+        {
+            public int nodeIndex { get; private set; }
+            public int path_cost { get; private set; }
+            public DijkstraElement(int _nodeIndex, int _path_cost)
+            {
+                nodeIndex = _nodeIndex;
+                path_cost = _path_cost;
+            }
+
+            //USED FOR QUEUE PRIORITY
+            public int CompareTo(DijkstraElement other)
+            {
+                return path_cost.CompareTo(other.path_cost);
+            }
         }
         #endregion
     }

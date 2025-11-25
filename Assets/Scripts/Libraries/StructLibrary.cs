@@ -61,3 +61,16 @@ namespace Player.Inventory
         #endregion
     }
 }
+[System.Serializable]
+public struct DijkstraInfo
+{
+    public int[] distances;
+    //public Dictionary<int, int> pathIndexesDict;
+    public int[] pathIndexes;
+    public DijkstraInfo(in int[] distances, /*in Dictionary<int, int> pathIndexesDict,*/ in int[] pathIndexes)
+    {
+        this.distances = distances;
+        //this.pathIndexesDict = pathIndexesDict;
+        this.pathIndexes = pathIndexes;
+    }
+}

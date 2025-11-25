@@ -12,14 +12,14 @@ namespace Grid
         #region Properties
 
         // Flattened index inside grid array.
-        public int Index { get; private set; }
+        [field: SerializeField] public int Index { get; private set; }
 
         // Grid coordinate X.
-        public int X { get; private set; }
-        private readonly List<GridEdge> edges;
+        [field: SerializeField] public int X { get; private set; }
+        public List<GridEdge> edges;
 
         // Grid coordinate Z.
-        public int Z { get; private set; }
+        [field: SerializeField] public int Z { get; private set; }
 
         // World position of the node.
         public Vector3 WorldPosition { get; private set; }
@@ -111,6 +111,23 @@ namespace Grid
             WorldPosition = position;
         }
 
+        public void SortEdgesByCheapest()
+        {
+            if (edges.Count == 0)
+                return;
+
+            int i, j;
+            GridEdge edgeTemp;
+            for (j = 1; j < edges.Count; j++)
+            {
+                for (i = j; i > 0 && edges[i].weight < edges[i - 1].weight; i--)
+                {
+                    edgeTemp = edges[i];
+                    edges[i] = edges[i - 1];
+                    edges[i - 1] = edgeTemp;
+                }
+            }
+        }
         #endregion
     }
 }

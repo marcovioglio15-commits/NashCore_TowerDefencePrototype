@@ -1,6 +1,6 @@
 using Grid;
 using UnityEngine;
-
+[System.Serializable]
 public class GridEdge
 {
     public readonly GridNode a;
