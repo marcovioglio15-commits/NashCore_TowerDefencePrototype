@@ -31,6 +31,9 @@ namespace Enemy
         [Header("Runtime Modifiers")]
         [SerializeField] private EnemyRuntimeModifiers runtimeModifiers;
 
+        [Tooltip("Offset applied to the resolved spawn position.")]
+        [SerializeField] private Vector3 spawnOffset;
+
         #endregion
 
         #region Properties
@@ -60,26 +63,32 @@ namespace Enemy
             get { return runtimeModifiers; }
         }
 
+        public Vector3 SpawnOffset
+        {
+            get { return spawnOffset; }
+        }
+
         #endregion
         #endregion
 
         #region Methods
         #region Constructors
 
-        public EnemySpawnContext(EnemyClassDefinition definition, Vector3 position, Quaternion rotation, Transform parent, EnemyRuntimeModifiers runtimeModifiers)
+        public EnemySpawnContext(EnemyClassDefinition definition, Vector3 position, Quaternion rotation, Transform parent, EnemyRuntimeModifiers runtimeModifiers, Vector3 spawnOffset)
         {
             this.definition = definition;
             this.position = position;
             this.rotation = rotation;
             this.parent = parent;
             this.runtimeModifiers = runtimeModifiers;
+            this.spawnOffset = spawnOffset;
         }
 
-        public EnemySpawnContext(EnemyClassDefinition definition, Vector3 position, Quaternion rotation, Transform parent) : this(definition, position, rotation, parent, EnemyRuntimeModifiers.Identity)
+        public EnemySpawnContext(EnemyClassDefinition definition, Vector3 position, Quaternion rotation, Transform parent) : this(definition, position, rotation, parent, EnemyRuntimeModifiers.Identity, Vector3.zero)
         {
         }
 
-        public EnemySpawnContext(EnemyClassDefinition definition, Vector3 position, Quaternion rotation) : this(definition, position, rotation, null, EnemyRuntimeModifiers.Identity)
+        public EnemySpawnContext(EnemyClassDefinition definition, Vector3 position, Quaternion rotation) : this(definition, position, rotation, null, EnemyRuntimeModifiers.Identity, Vector3.zero)
         {
         }
 
@@ -105,6 +114,13 @@ namespace Enemy
         {
             EnemySpawnContext updated = this;
             updated.runtimeModifiers = modifiers;
+            return updated;
+        }
+
+        public EnemySpawnContext WithOffset(Vector3 offset)
+        {
+            EnemySpawnContext updated = this;
+            updated.spawnOffset = offset;
             return updated;
         }
 

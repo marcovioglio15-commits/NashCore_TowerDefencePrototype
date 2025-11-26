@@ -15,8 +15,8 @@ MonoBehaviour:
   key: enemy_default
   displayName: New Enemy
   description: 
-  icon: {fileID: 0}
-  enemyPrefab: {fileID: 0}
+  icon: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+  enemyPrefab: {fileID: 5124621794192595975, guid: 5c471e4711cf1714da4038b6417d9e32, type: 3}
   enemyPool: {fileID: 11400000, guid: 48e5c1e526e2f564999d2cde4072b2a5, type: 2}
   durability:
     maxHealth: 100

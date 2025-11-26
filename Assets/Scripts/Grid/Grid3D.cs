@@ -158,6 +158,11 @@ namespace Grid
 
         public float CellSize { get { return cellSize; } }
 
+        public Vector2Int[] GetEnemySpawnCoords()
+        {
+            return enemySpawnCells != null ? enemySpawnCells : System.Array.Empty<Vector2Int>();
+        }
+
         #endregion
 
         #region Unity

@@ -94,7 +94,7 @@ namespace Enemy
         /// </summary>
         public PooledEnemy OnSpawn()
         {
-            EnemySpawnContext fallbackContext = new EnemySpawnContext(defaultDefinition, transform.position, transform.rotation, transform.parent, EnemyRuntimeModifiers.Identity);
+            EnemySpawnContext fallbackContext = new EnemySpawnContext(defaultDefinition, transform.position, transform.rotation, transform.parent, EnemyRuntimeModifiers.Identity, Vector3.zero);
             PooledEnemy spawned = OnSpawn(fallbackContext);
             return spawned;
         }
@@ -134,7 +134,7 @@ namespace Enemy
         /// </summary>
         public void ResetPoolable()
         {
-            EnemySpawnContext resetContext = new EnemySpawnContext(defaultDefinition, Vector3.zero, Quaternion.identity, null, EnemyRuntimeModifiers.Identity);
+            EnemySpawnContext resetContext = new EnemySpawnContext(defaultDefinition, Vector3.zero, Quaternion.identity, null, EnemyRuntimeModifiers.Identity, Vector3.zero);
             lastContext = resetContext;
             activeDefinition = defaultDefinition;
             activeStats = EnemyStatSnapshot.Create(defaultDefinition, EnemyRuntimeModifiers.Identity);
@@ -214,7 +214,8 @@ namespace Enemy
 
         private void ApplyTransform(EnemySpawnContext context)
         {
-            transform.SetPositionAndRotation(context.Position, context.Rotation);
+            Vector3 finalPosition = context.Position + context.SpawnOffset;
+            transform.SetPositionAndRotation(finalPosition, context.Rotation);
             if (context.Parent != null)
             {
                 transform.SetParent(context.Parent, true);

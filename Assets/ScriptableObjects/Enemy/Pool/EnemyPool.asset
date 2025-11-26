@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e52ccebc17af8f140a62f694df124cd3, type: 3}
   m_Name: EnemyPool
   m_EditorClassIdentifier: 
-  prefab: {fileID: 0}
+  prefab: {fileID: 5124621794192595975, guid: 5c471e4711cf1714da4038b6417d9e32, type: 3}
   fallbackDefinition: {fileID: 11400000, guid: 265477883ca3daa4690efc762154b3a6, type: 2}
   warmupCount: 6

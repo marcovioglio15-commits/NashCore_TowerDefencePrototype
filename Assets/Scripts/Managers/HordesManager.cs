@@ -170,11 +170,18 @@ public class HordesManager : Singleton<HordesManager>
 
         int count = Mathf.Max(1, wave.EnemyCount);
         float cadence = Mathf.Max(0.05f, wave.SpawnCadenceSeconds);
-        for (int i = 0; i < count; i++)
+        int spawned = 0;
+        int nodeCount = spawnNodes.Count;
+        while (spawned < count)
         {
-            Vector2Int coords = spawnNodes[i % spawnNodes.Count];
-            SpawnEnemyInstance(enemyDefinition, coords, wave.RuntimeModifiers);
-            if (i < count - 1)
+            for (int n = 0; n < nodeCount && spawned < count; n++)
+            {
+                Vector2Int coords = spawnNodes[n];
+                SpawnEnemyInstance(enemyDefinition, coords, wave.RuntimeModifiers, wave.SpawnOffset);
+                spawned++;
+            }
+
+            if (spawned < count)
                 yield return new WaitForSeconds(cadence);
         }
     }
@@ -182,7 +189,7 @@ public class HordesManager : Singleton<HordesManager>
     /// <summary>
     /// Resolves context data and spawns one enemy instance at the requested spawn node.
     /// </summary>
-    private void SpawnEnemyInstance(EnemyClassDefinition definition, Vector2Int coords, EnemyRuntimeModifiers modifiers)
+    private void SpawnEnemyInstance(EnemyClassDefinition definition, Vector2Int coords, EnemyRuntimeModifiers modifiers, Vector3 spawnOffset)
     {
         EnemyPoolSO pool = definition.EnemyPool;
         if (pool == null)
@@ -191,7 +198,7 @@ public class HordesManager : Singleton<HordesManager>
         Vector3 position = ResolveSpawnPosition(coords);
         Quaternion rotation = ResolveSpawnRotation(coords);
         Transform parent = ResolveSpawnParent(coords);
-        EnemySpawnContext context = new EnemySpawnContext(definition, position, rotation, parent, modifiers);
+        EnemySpawnContext context = new EnemySpawnContext(definition, position, rotation, parent, modifiers, spawnOffset);
         pool.Spawn(definition, context);
     }
 
@@ -326,6 +333,9 @@ public struct HordeWave
     [Tooltip("Seconds between spawns for this wave.")]
     [SerializeField] private float spawnCadenceSeconds;
 
+    [Tooltip("Offset applied to the resolved spawn position for this wave.")]
+    [SerializeField] private Vector3 spawnOffset;
+
     [Tooltip("Spawn nodes used for this wave. Nodes must be marked as enemy spawns in the grid.")]
     [SerializeField] private List<Vector2Int> spawnNodes;
 
@@ -339,6 +349,7 @@ public struct HordeWave
     public EnemyRuntimeModifiers RuntimeModifiers { get { return runtimeModifiers; } }
     public int EnemyCount { get { return enemyCount; } }
     public float SpawnCadenceSeconds { get { return spawnCadenceSeconds; } }
+    public Vector3 SpawnOffset { get { return spawnOffset; } }
     public IReadOnlyList<Vector2Int> SpawnNodes { get { return spawnNodes != null ? spawnNodes : System.Array.Empty<Vector2Int>(); } }
     public WaveAdvanceMode AdvanceMode { get { return advanceMode; } }
     public float AdvanceDelaySeconds { get { return advanceDelaySeconds; } }
