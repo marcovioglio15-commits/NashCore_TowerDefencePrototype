@@ -26,16 +26,24 @@ namespace Scriptables.Enemies
         [Tooltip("Seconds the enemy waits after applying contact effects before resuming travel.")]
         [SerializeField] private float contactStopDuration = 0.6f;
 
-        [Tooltip("Multiplier applied to animator playback speed to match travel velocity.")]
-        [SerializeField] private float animationSpeedFactor = 0.35f;
+    [Tooltip("Multiplier applied to animator playback speed to match travel velocity.")]
+    [SerializeField] private float animationSpeedFactor = 0.35f;
 
-        [Tooltip("Animator float parameter updated with normalized movement speed.")]
-        [SerializeField] private string animationSpeedParameter = "Speed";
+    [Tooltip("Animator float parameter updated with normalized movement speed.")]
+    [SerializeField] private string animationSpeedParameter = "Speed";
 
-        [Tooltip("Draws the cached navigation path when the enemy is selected.")]
-        [SerializeField] private bool drawPathGizmos = true;
+    [Header("Avoidance")]
 
-        [Tooltip("Color used when rendering the navigation gizmo line.")]
+    [Tooltip("Radius used to detect another enemy occupying the next waypoint.")]
+    [SerializeField] private float occupancyProbeRadius = 0.35f;
+
+    [Tooltip("Layer mask used to detect other enemies while probing occupancy.")]
+    [SerializeField] private LayerMask occupancyLayerMask = ~0;
+
+    [Tooltip("Draws the cached navigation path when the enemy is selected.")]
+    [SerializeField] private bool drawPathGizmos = true;
+
+    [Tooltip("Color used when rendering the navigation gizmo line.")]
         [SerializeField] private Color pathGizmoColor = new Color(0.25f, 0.8f, 1f, 0.9f);
 
         #endregion
@@ -77,17 +85,27 @@ namespace Scriptables.Enemies
             get { return animationSpeedParameter; }
         }
 
-        public bool DrawPathGizmos
-        {
-            get { return drawPathGizmos; }
-        }
-
-        public Color PathGizmoColor
-        {
-            get { return pathGizmoColor; }
-        }
-
-        #endregion
-        #endregion
+    public bool DrawPathGizmos
+    {
+        get { return drawPathGizmos; }
     }
+
+    public Color PathGizmoColor
+    {
+        get { return pathGizmoColor; }
+    }
+
+    public float OccupancyProbeRadius
+    {
+        get { return Mathf.Max(0f, occupancyProbeRadius); }
+    }
+
+    public int OccupancyLayerMask
+    {
+        get { return occupancyLayerMask; }
+    }
+
+    #endregion
+    #endregion
+}
 }

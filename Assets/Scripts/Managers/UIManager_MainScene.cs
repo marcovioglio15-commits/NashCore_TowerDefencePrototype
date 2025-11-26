@@ -127,6 +127,10 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
     [Tooltip("Text displayed when entering the defence phase.")]
     [SerializeField] private string combatPhaseLabel = "Defence Phase";
 
+    [Tooltip("Image with Fill amount used to visualize current player health.")]
+    [Header("Player Health")]
+    [SerializeField] private Image playerHealthFillImage;
+
     [Tooltip("Label displaying the player's current Scrap balance.")]
     [Header("Economy")]
     [SerializeField] private TextMeshProUGUI ScrapLabel;
@@ -186,6 +190,8 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         EventsManager.GameVictoryAchieved += HandleGameVictoryAchieved;
         EventsManager.GameDefeatTriggered += HandleGameDefeatTriggered;
         EventsManager.IncreaseCompletedHordesCounter += HandleCompletedHordesIncreased;
+        EventsManager.PlayerHealthChanged += HandlePlayerHealthChanged;
+        EventsManager.PlayerDeath += HandlePlayerDeath;
         if (buildablesInventory != null)
             buildablesInventory.RequestCatalogBroadcast();
 
@@ -209,6 +215,7 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         defeatedHordesCount = 0;
         cachedNextLevelSceneName = string.Empty;
         UpdateDefeatedHordesLabel();
+        ApplyPlayerHealthFill(1f, 1f);
     }
 
     /// <summary>
@@ -230,6 +237,8 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         EventsManager.GameVictoryAchieved -= HandleGameVictoryAchieved;
         EventsManager.GameDefeatTriggered -= HandleGameDefeatTriggered;
         EventsManager.IncreaseCompletedHordesCounter -= HandleCompletedHordesIncreased;
+        EventsManager.PlayerHealthChanged -= HandlePlayerHealthChanged;
+        EventsManager.PlayerDeath -= HandlePlayerDeath;
         DetachPhaseButtonListener();
         HideFreeAimUi();
         HideReticle();
@@ -1038,6 +1047,37 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
 
         ApplyPhaseUiState(manager.CurrentPhase, false);
         UpdatePhaseToggleVisibility(manager.CurrentPhase == GamePhase.Building);
+    }
+    #endregion
+
+    #region Player Health UI
+    /// <summary>
+    /// Updates the player health fill when health changes.
+    /// </summary>
+    private void HandlePlayerHealthChanged(float currentHealth, float maxHealth)
+    {
+        ApplyPlayerHealthFill(currentHealth, maxHealth);
+    }
+
+    /// <summary>
+    /// Clears the health fill when the player dies.
+    /// </summary>
+    private void HandlePlayerDeath()
+    {
+        ApplyPlayerHealthFill(0f, 1f);
+    }
+
+    /// <summary>
+    /// Writes the normalized health value into the assigned fill image.
+    /// </summary>
+    private void ApplyPlayerHealthFill(float currentHealth, float maxHealth)
+    {
+        if (playerHealthFillImage == null)
+            return;
+
+        float safeMax = Mathf.Max(Mathf.Epsilon, maxHealth);
+        float normalized = Mathf.Clamp01(currentHealth / safeMax);
+        playerHealthFillImage.fillAmount = normalized;
     }
     #endregion
 

@@ -12,12 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a0e3356272d34348907647d2e152c9b, type: 3}
   m_Name: EnemyMovementSettings
   m_EditorClassIdentifier: 
-  fallbackSpeed: 2.5
+  fallbackSpeed: 6
   waypointTolerance: 0.05
   positionLerpSpeed: 8
   rotationLerpSpeed: 480
   contactStopDuration: 0.6
   animationSpeedFactor: 0.35
   animationSpeedParameter: Speed
+  occupancyProbeRadius: 0.35
+  occupancyLayerMask:
+    serializedVersion: 2
+    m_Bits: 256
   drawPathGizmos: 1
   pathGizmoColor: {r: 0.25, g: 0.8, b: 1, a: 0.9}

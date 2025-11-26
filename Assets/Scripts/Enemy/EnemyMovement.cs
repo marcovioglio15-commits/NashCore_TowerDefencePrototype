@@ -37,6 +37,8 @@ public class EnemyMovement : MonoBehaviour
     private Player.PlayerHealth lockedPlayer;
     private float lockedContactRange;
     private float spawnHeightOffset;
+    private readonly Collider[] occupancyBuffer = new Collider[8];
+    private float repathCooldownTimer;
 
     #endregion
     #endregion
@@ -71,6 +73,7 @@ public class EnemyMovement : MonoBehaviour
     {
         float deltaTime = Time.deltaTime;
         UpdateContactLock(deltaTime);
+        UpdateRepathCooldown(deltaTime);
 
         if (!movementActive)
             return;
@@ -211,6 +214,17 @@ public class EnemyMovement : MonoBehaviour
             distance = direction.magnitude;
         }
 
+        if (IsWaypointBlocked(targetPositionWithOffset))
+        {
+            AlignOrientation(direction, deltaTime);
+            UpdateAnimator(0f);
+            if (TryRepathAroundBlock())
+            {
+                return;
+            }
+            return;
+        }
+
         float moveSpeed = ResolveMoveSpeed();
         float stepDistance = moveSpeed * deltaTime;
         float lerpFactor = ResolvePositionLerp(deltaTime);
@@ -308,6 +322,52 @@ public class EnemyMovement : MonoBehaviour
     }
 
     /// <summary>
+    /// Returns the occupancy probe radius used to block movement into filled cells.
+    /// </summary>
+    private float ResolveOccupancyRadius()
+    {
+        return movementSettings != null ? movementSettings.OccupancyProbeRadius : 0.35f;
+    }
+
+    /// <summary>
+    /// Returns the layer mask used while probing occupancy.
+    /// </summary>
+    private int ResolveOccupancyLayerMask()
+    {
+        return movementSettings != null ? movementSettings.OccupancyLayerMask : ~0;
+    }
+
+    /// <summary>
+    /// Prevents entering a waypoint already occupied by another enemy.
+    /// </summary>
+    private bool IsWaypointBlocked(Vector3 waypointPosition)
+    {
+        float radius = ResolveOccupancyRadius();
+        if (radius <= 0f)
+            return false;
+
+        int mask = ResolveOccupancyLayerMask();
+        int found = Physics.OverlapSphereNonAlloc(waypointPosition, radius, occupancyBuffer, mask, QueryTriggerInteraction.Collide);
+        if (found <= 0)
+            return false;
+
+        for (int i = 0; i < found; i++)
+        {
+            Collider candidate = occupancyBuffer[i];
+            if (candidate == null || !candidate.gameObject.activeInHierarchy)
+                continue;
+
+            EnemyMovement neighbour = candidate.GetComponentInParent<EnemyMovement>();
+            if (neighbour == null || neighbour == this)
+                continue;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Calculates vertical offset at spawn to keep relative height along the path.
     /// </summary>
     private void ResolveSpawnHeightOffset()
@@ -327,6 +387,31 @@ public class EnemyMovement : MonoBehaviour
     private Vector3 ApplyHeightOffset(Vector3 waypoint)
     {
         return new Vector3(waypoint.x, waypoint.y + spawnHeightOffset, waypoint.z);
+    }
+
+    /// <summary>
+    /// Attempts to rebuild the path around an occupied waypoint.
+    /// </summary>
+    private bool TryRepathAroundBlock()
+    {
+        if (repathCooldownTimer > 0f)
+            return false;
+
+        BuildPath();
+        ResolveSpawnHeightOffset();
+        pathCursor = 0;
+        movementActive = worldPath.Count > 0;
+        repathCooldownTimer = 0.35f;
+        return movementActive;
+    }
+
+    /// <summary>
+    /// Updates the cooldown preventing constant replanning every frame.
+    /// </summary>
+    private void UpdateRepathCooldown(float deltaTime)
+    {
+        if (repathCooldownTimer > 0f)
+            repathCooldownTimer -= deltaTime;
     }
 
     #endregion
