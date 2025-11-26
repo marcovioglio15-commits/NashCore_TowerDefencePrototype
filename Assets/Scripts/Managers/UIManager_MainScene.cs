@@ -100,6 +100,12 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
     [SerializeField] private Button endingMainMenuButton;
     [Tooltip("Button that closes the application from the ending panel.")]
     [SerializeField] private Button endingQuitButton;
+    [Tooltip("Button that loads the next configured level after a victory.")]
+    [SerializeField] private Button nextLevelButton;
+
+    [Header("Level Flow")]
+    [Tooltip("Ordered scene names used to resolve the next level after a victory.")]
+    [SerializeField] private List<string> levelSceneOrder = new List<string>();
 
     [Header("Phase Flow")]
     [Tooltip("Button that toggles between build and combat phases.")]
@@ -154,6 +160,7 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
     private int defeatedHordesCount;
     private const string ResultPrefix = "RESULT : ";
     private const string HordesPrefix = "HORDES DEFEATED : ";
+    private string cachedNextLevelSceneName;
     #endregion
     #endregion
 
@@ -200,6 +207,7 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         endingDisplayed = false;
         pauseActive = false;
         defeatedHordesCount = 0;
+        cachedNextLevelSceneName = string.Empty;
         UpdateDefeatedHordesLabel();
     }
 
@@ -600,6 +608,9 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
     /// </summary>
     private void AttachEndingButtonListeners()
     {
+        if (nextLevelButton != null)
+            nextLevelButton.onClick.AddListener(HandleNextLevelRequested);
+
         if (endingMainMenuButton != null)
             endingMainMenuButton.onClick.AddListener(HandleMainMenuRequested);
 
@@ -612,6 +623,9 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
     /// </summary>
     private void DetachEndingButtonListeners()
     {
+        if (nextLevelButton != null)
+            nextLevelButton.onClick.RemoveListener(HandleNextLevelRequested);
+
         if (endingMainMenuButton != null)
             endingMainMenuButton.onClick.RemoveListener(HandleMainMenuRequested);
 
@@ -664,6 +678,7 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         if (pauseButton != null)
             pauseButton.interactable = false;
 
+        UpdateNextLevelButton(victory);
         UpdateResultLabel(victory);
         UpdateDefeatedHordesLabel();
     }
@@ -679,6 +694,9 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
         endingDisplayed = false;
         if (pauseButton != null)
             pauseButton.interactable = true;
+
+        UpdateNextLevelButton(false);
+        cachedNextLevelSceneName = string.Empty;
     }
 
     /// <summary>
@@ -704,9 +722,38 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
 
         defeatedHordesLabel.text = $"{HordesPrefix}{defeatedHordesCount}";
     }
+
+    /// <summary>
+    /// Shows the next-level button only when a valid next scene exists and the player has won.
+    /// </summary>
+    private void UpdateNextLevelButton(bool victory)
+    {
+        if (nextLevelButton == null)
+            return;
+
+        string nextSceneName = "";
+        bool hasNextLevel = victory && TryGetNextLevelScene(out nextSceneName);
+        cachedNextLevelSceneName = hasNextLevel ? nextSceneName : string.Empty;
+
+        GameObject buttonObject = nextLevelButton.gameObject;
+        if (buttonObject != null && buttonObject.activeSelf != hasNextLevel)
+            buttonObject.SetActive(hasNextLevel);
+    }
     #endregion
 
     #region Navigation
+    /// <summary>
+    /// Loads the next configured level when available.
+    /// </summary>
+    private void HandleNextLevelRequested()
+    {
+        if (string.IsNullOrEmpty(cachedNextLevelSceneName))
+            return;
+
+        ApplyPauseState(false);
+        SceneManager.LoadScene(cachedNextLevelSceneName);
+    }
+
     /// <summary>
     /// Handles navigation back to the main menu scene.
     /// </summary>
@@ -737,6 +784,43 @@ public class UIManager_MainScene : Singleton<UIManager_MainScene>
     {
         ApplyPauseState(false);
         AppUtils.Quit();
+    }
+
+    /// <summary>
+    /// Resolves the next scene in the ordered list relative to the active one.
+    /// </summary>
+    private bool TryGetNextLevelScene(out string sceneName)
+    {
+        sceneName = string.Empty;
+
+        if (levelSceneOrder == null || levelSceneOrder.Count == 0)
+            return false;
+
+        string currentSceneName = SceneManager.GetActiveScene().name;
+        int sceneCount = levelSceneOrder.Count;
+        for (int i = 0; i < sceneCount; i++)
+        {
+            string candidate = levelSceneOrder[i];
+            if (string.IsNullOrEmpty(candidate))
+                continue;
+
+            if (string.Equals(candidate, currentSceneName, System.StringComparison.Ordinal))
+            {
+                for (int j = i + 1; j < sceneCount; j++)
+                {
+                    string nextScene = levelSceneOrder[j];
+                    if (!string.IsNullOrEmpty(nextScene))
+                    {
+                        sceneName = nextScene;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        return false;
     }
     #endregion
 

@@ -11,6 +11,7 @@ using Player;
 /// </summary>
 public class HordesManager : Singleton<HordesManager>
 {
+    #region Variables And Properties
     #region Serialized Fields
     [Header("Dependencies")]
     [Tooltip("Grid used to resolve spawn nodes and optional spawn point bindings.")]
@@ -36,6 +37,8 @@ public class HordesManager : Singleton<HordesManager>
     private int activeEnemies;
     private Coroutine hordeRoutine;
     private bool hordeActive;
+    private readonly List<SpawnPointDoor> spawnDoors = new List<SpawnPointDoor>();
+    private readonly HashSet<SpawnPointDoor> previewDoorBuffer = new HashSet<SpawnPointDoor>();
     #endregion
 
     #region Properties
@@ -44,7 +47,9 @@ public class HordesManager : Singleton<HordesManager>
         get { return currentHordeIndex + 1 < hordes.Count; }
     }
     #endregion
+    #endregion
 
+    #region Methods
     #region Unity
     /// <summary>
     /// Subscribes to phase changes to automatically start hordes.
@@ -53,6 +58,7 @@ public class HordesManager : Singleton<HordesManager>
     {
         base.OnEnable();
         EventsManager.GamePhaseChanged += HandlePhaseChanged;
+        CacheSpawnDoors();
     }
 
     /// <summary>
@@ -61,6 +67,8 @@ public class HordesManager : Singleton<HordesManager>
     private void OnDisable()
     {
         EventsManager.GamePhaseChanged -= HandlePhaseChanged;
+        spawnDoors.Clear();
+        previewDoorBuffer.Clear();
     }
     #endregion
 
@@ -92,10 +100,15 @@ public class HordesManager : Singleton<HordesManager>
     #region Internal
     private void HandlePhaseChanged(GamePhase phase)
     {
-        if (phase != GamePhase.Defence)
+        if (phase == GamePhase.Defence)
+        {
+            //CloseAllSpawnDoors();
+            BeginNextHorde();
             return;
+        }
 
-        BeginNextHorde();
+        if (phase == GamePhase.Building)
+            PreviewNextWaveDoors();
     }
 
     /// <summary>
@@ -118,6 +131,120 @@ public class HordesManager : Singleton<HordesManager>
         currentHordeIndex++;
         HordeDefinition definition = hordes[currentHordeIndex];
         hordeRoutine = StartCoroutine(RunHorde(definition));
+    }
+
+    /// <summary>
+    /// Opens doors for spawn points used by the next scheduled wave and closes the rest.
+    /// </summary>
+    private void PreviewNextWaveDoors()
+    {
+        if (grid == null)
+            return;
+
+        if (spawnDoors.Count == 0)
+            CacheSpawnDoors();
+
+        if (spawnDoors.Count == 0)
+            return;
+
+        IReadOnlyList<Vector2Int> previewNodes = ResolveNextWaveSpawnNodes();
+        if (previewNodes == null || previewNodes.Count == 0)
+        {
+            //CloseAllSpawnDoors();
+            return;
+        }
+
+        previewDoorBuffer.Clear();
+        int previewCount = previewNodes.Count;
+        for (int i = 0; i < previewCount; i++)
+        {
+            SpawnPointDoor door = grid.GetSpawnDoor(previewNodes[i]);
+            if (door != null)
+                previewDoorBuffer.Add(door);
+        }
+
+        int trackedCount = spawnDoors.Count;
+        for (int i = 0; i < trackedCount; i++)
+        {
+            SpawnPointDoor door = spawnDoors[i];
+            if (door == null)
+                continue;
+
+            if (previewDoorBuffer.Contains(door))
+                door.OpenDoor();
+            else
+                door.CloseDoor();
+        }
+
+        previewDoorBuffer.Clear();
+    }
+
+    /// <summary>
+    /// Closes all known spawn doors, used before defence begins or when no preview is available.
+    /// </summary>
+    private void CloseAllSpawnDoors()
+    {
+        if (spawnDoors.Count == 0)
+            CacheSpawnDoors();
+
+        int doorCount = spawnDoors.Count;
+        for (int i = 0; i < doorCount; i++)
+        {
+            SpawnPointDoor door = spawnDoors[i];
+            if (door != null)
+                door.CloseDoor();
+        }
+    }
+
+    /// <summary>
+    /// Builds the cached list of doors using grid bindings to avoid repeated lookups.
+    /// </summary>
+    private void CacheSpawnDoors()
+    {
+        spawnDoors.Clear();
+
+        if (grid == null)
+            return;
+
+        Vector2Int[] spawnCoords = grid.GetEnemySpawnCoords();
+        if (spawnCoords == null || spawnCoords.Length == 0)
+            return;
+
+        int coordCount = spawnCoords.Length;
+        for (int i = 0; i < coordCount; i++)
+        {
+            SpawnPointDoor door = grid.GetSpawnDoor(spawnCoords[i]);
+            if (door != null && !spawnDoors.Contains(door))
+                spawnDoors.Add(door);
+        }
+    }
+
+    /// <summary>
+    /// Returns the spawn nodes of the next upcoming wave when available.
+    /// </summary>
+    private IReadOnlyList<Vector2Int> ResolveNextWaveSpawnNodes()
+    {
+        if (hordes == null || hordes.Count == 0)
+            return null;
+
+        int nextHordeIndex = currentHordeIndex + 1;
+        if (nextHordeIndex < 0 || nextHordeIndex >= hordes.Count)
+            return null;
+
+        HordeDefinition horde = hordes[nextHordeIndex];
+        IReadOnlyList<HordeWave> waves = horde.Waves;
+        if (waves == null || waves.Count == 0)
+            return null;
+
+        int waveCount = waves.Count;
+        for (int i = 0; i < waveCount; i++)
+        {
+            IReadOnlyList<Vector2Int> nodes = waves[i].SpawnNodes;
+            if (nodes != null && nodes.Count > 0)
+                return nodes;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -210,10 +337,6 @@ public class HordesManager : Singleton<HordesManager>
         if (grid == null)
             return Vector3.zero;
 
-        Transform anchor = grid.GetSpawnPoint(coords);
-        if (anchor != null)
-            return anchor.position;
-
         return grid.GridToWorld(coords.x, coords.y);
     }
 
@@ -225,10 +348,6 @@ public class HordesManager : Singleton<HordesManager>
         if (grid == null)
             return Quaternion.identity;
 
-        Transform anchor = grid.GetSpawnPoint(coords);
-        if (anchor != null)
-            return anchor.rotation;
-
         return Quaternion.identity;
     }
 
@@ -239,10 +358,6 @@ public class HordesManager : Singleton<HordesManager>
     {
         if (grid == null)
             return null;
-
-        Transform anchor = grid.GetSpawnPoint(coords);
-        if (anchor != null)
-            return anchor.parent;
 
         return grid.transform;
     }
@@ -288,69 +403,5 @@ public class HordesManager : Singleton<HordesManager>
         return cachedPlayerHealth;
     }
     #endregion
-}
-
-/// <summary>
-/// Describes when the next wave should start after the current one finishes spawning.
-/// </summary>
-public enum WaveAdvanceMode
-{
-    FixedInterval,
-    AfterClear
-}
-
-/// <summary>
-/// Groups multiple waves executed during a single defence phase.
-/// </summary>
-[System.Serializable]
-public struct HordeDefinition
-{
-    [Tooltip("Identifier used in debug panels or logs.")]
-    [SerializeField] private string key;
-
-    [Tooltip("Waves executed sequentially during this horde.")]
-    [SerializeField] private List<HordeWave> waves;
-
-    public string Key { get { return key; } }
-    public IReadOnlyList<HordeWave> Waves { get { return waves != null ? waves : System.Array.Empty<HordeWave>(); } }
-}
-
-/// <summary>
-/// Configures a single wave with enemy type, spawn cadence, and start mode.
-/// </summary>
-[System.Serializable]
-public struct HordeWave
-{
-    [Tooltip("Enemy archetype spawned in this wave.")]
-    [SerializeField] private EnemyClassDefinition enemyDefinition;
-
-    [Tooltip("Runtime modifiers applied on spawn to speed or reward enemies.")]
-    [SerializeField] private EnemyRuntimeModifiers runtimeModifiers;
-
-    [Tooltip("Total number of enemies spawned in this wave.")]
-    [SerializeField] private int enemyCount;
-
-    [Tooltip("Seconds between spawns for this wave.")]
-    [SerializeField] private float spawnCadenceSeconds;
-
-    [Tooltip("Offset applied to the resolved spawn position for this wave.")]
-    [SerializeField] private Vector3 spawnOffset;
-
-    [Tooltip("Spawn nodes used for this wave. Nodes must be marked as enemy spawns in the grid.")]
-    [SerializeField] private List<Vector2Int> spawnNodes;
-
-    [Tooltip("Mode controlling when the next wave begins.")]
-    [SerializeField] private WaveAdvanceMode advanceMode;
-
-    [Tooltip("Delay applied before the next wave starts. Applied after the last enemy spawn or after full clear based on the advance mode.")]
-    [SerializeField] private float advanceDelaySeconds;
-
-    public EnemyClassDefinition EnemyDefinition { get { return enemyDefinition; } }
-    public EnemyRuntimeModifiers RuntimeModifiers { get { return runtimeModifiers; } }
-    public int EnemyCount { get { return enemyCount; } }
-    public float SpawnCadenceSeconds { get { return spawnCadenceSeconds; } }
-    public Vector3 SpawnOffset { get { return spawnOffset; } }
-    public IReadOnlyList<Vector2Int> SpawnNodes { get { return spawnNodes != null ? spawnNodes : System.Array.Empty<Vector2Int>(); } }
-    public WaveAdvanceMode AdvanceMode { get { return advanceMode; } }
-    public float AdvanceDelaySeconds { get { return advanceDelaySeconds; } }
+    #endregion
 }

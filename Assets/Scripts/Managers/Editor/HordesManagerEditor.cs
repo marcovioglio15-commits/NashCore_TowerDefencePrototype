@@ -10,13 +10,16 @@ using Enemy;
 [CustomEditor(typeof(HordesManager))]
 public class HordesManagerEditor : Editor
 {
-    #region Runtime State
+    #region Variables And Properties
+    #region Serialized
     private SerializedProperty gridProperty;
     private SerializedProperty gameManagerProperty;
     private SerializedProperty hordesProperty;
     private SerializedProperty defenceStartDelayProperty;
     #endregion
+    #endregion
 
+    #region Methods
     #region Unity
     private void OnEnable()
     {
@@ -207,5 +210,6 @@ public class HordesManagerEditor : Editor
             }
         }
     }
+    #endregion
     #endregion
 }

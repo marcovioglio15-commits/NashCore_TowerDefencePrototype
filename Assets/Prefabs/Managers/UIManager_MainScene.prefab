@@ -53,3 +53,68 @@ MonoBehaviour:
   dragPreviewImage: {fileID: 0}
   validDragColor: {r: 1, g: 1, b: 1, a: 1}
   invalidDragColor: {r: 1, g: 0.45, b: 0.45, a: 0.95}
+  worldSpaceCamera: {fileID: 0}
+  holdIndicatorLayer: {fileID: 0}
+  holdIndicatorPrefab: {fileID: 0}
+  holdIndicatorHeightOffset: 1.75
+  buildBarRoot: {fileID: 0}
+  freeAimRoot: {fileID: 0}
+  freeAimExitHoldImage: {fileID: 0}
+  freeAimExitHoldSeconds: 1.35
+  freeAimExitIdleAlpha: 0.45
+  freeAimExitActiveAlpha: 1
+  freeAimExitCanvasGroup: {fileID: 0}
+  freeAimReticle: {fileID: 0}
+  freeAimReticleCanvasGroup: {fileID: 0}
+  mainMenuSceneName: MainMenuScene
+  pauseButton: {fileID: 0}
+  pausePanel: {fileID: 0}
+  resumeButton: {fileID: 0}
+  pausePanelMainMenuButton: {fileID: 0}
+  endingPanel: {fileID: 0}
+  resultLabel: {fileID: 0}
+  victoryResultColor: {r: 0.34, g: 0.83, b: 0.58, a: 1}
+  defeatResultColor: {r: 0.9, g: 0.25, b: 0.25, a: 1}
+  defeatedHordesLabel: {fileID: 0}
+  endingMainMenuButton: {fileID: 0}
+  endingQuitButton: {fileID: 0}
+  nextLevelButton: {fileID: 0}
+  levelSceneOrder:
+  - TS_Level1
+  - TS_Level2
+  phaseToggleButton: {fileID: 0}
+  phaseBannerCanvasGroup: {fileID: 0}
+  phaseBannerLabel: {fileID: 0}
+  phaseBannerFadeInSeconds: 0.3
+  phaseBannerHoldSeconds: 1.6
+  phaseBannerFadeOutSeconds: 0.45
+  phaseBannerAlwaysVisible: 0
+  buildingPhaseLabel: Building Phase
+  combatPhaseLabel: Defence Phase
+  ScrapLabel: {fileID: 0}
+  ScrapInsufficientColor: {r: 0.9, g: 0.25, b: 0.25, a: 1}
+  ScrapInsufficientPulseSeconds: 0.4
+  ScrapInsufficientCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4

@@ -260,6 +260,9 @@ namespace Grid.Editor
             SerializedProperty spawnPointProperty = selectedSpawnBindingProperty.FindPropertyRelative("SpawnPoint");
             if (spawnPointProperty != null)
                 EditorGUILayout.PropertyField(spawnPointProperty, new GUIContent("Spawn Point"), true);
+            SerializedProperty slidingDoorProperty = selectedSpawnBindingProperty.FindPropertyRelative("SlidingDoor");
+            if (slidingDoorProperty != null)
+                EditorGUILayout.PropertyField(slidingDoorProperty, new GUIContent("Sliding Door"), true);
             EditorGUILayout.Space();
         }
         #endregion
@@ -507,6 +510,10 @@ namespace Grid.Editor
             SerializedProperty spawnPointProperty = newElement != null ? newElement.FindPropertyRelative("SpawnPoint") : null;
             if (spawnPointProperty != null)
                 spawnPointProperty.objectReferenceValue = null;
+
+            SerializedProperty slidingDoorProperty = newElement != null ? newElement.FindPropertyRelative("SlidingDoor") : null;
+            if (slidingDoorProperty != null)
+                slidingDoorProperty.objectReferenceValue = null;
 
             return newElement;
         }

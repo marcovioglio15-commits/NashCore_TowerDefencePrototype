@@ -11,6 +11,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/TestingScenes/TS_TowersPositioning.unity
     guid: 787ac04e5762c234d902c683e36eddd6
+  - enabled: 1
+    path: Assets/Scenes/TestingScenes/TS_Level1.unity
+    guid: 54af85493afe9384d8d01bc24cbcebff
+  - enabled: 1
+    path: Assets/Scenes/TestingScenes/TS_Level2.unity
+    guid: d9691c367958ac3418625dfddd0fd439
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 7f6f3212a8c741f3ae7ed6cd7e63d7ce, type: 3}
   m_UseUCBPForAssetBundles: 0

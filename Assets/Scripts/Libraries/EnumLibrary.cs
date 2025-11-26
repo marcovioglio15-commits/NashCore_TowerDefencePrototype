@@ -28,3 +28,12 @@ public enum GamePhase
     Building,
     Defence
 }
+
+/// <summary>
+/// Describes when the next wave should start after the current one finishes spawning.
+/// </summary>
+public enum WaveAdvanceMode
+{
+    FixedInterval,
+    AfterClear
+}

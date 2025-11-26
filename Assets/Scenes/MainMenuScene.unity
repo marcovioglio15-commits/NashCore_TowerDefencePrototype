@@ -654,9 +654,9 @@ Camera:
   m_LensShift: {x: 0, y: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0.34186125
+    x: 0
     y: 0
-    width: 0.31627747
+    width: 1
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
@@ -786,7 +786,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 411846cddf190184aa8fd1e167d164c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainSceneName: TS_TowersPositioning
+  mainSceneName: TS_Level1
   playButton: {fileID: 1190944428}
   quitButton: {fileID: 1190944427}
 --- !u!4 &1823664917

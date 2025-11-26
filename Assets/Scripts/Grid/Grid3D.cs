@@ -10,6 +10,7 @@ namespace Grid
     /// </summary>
     public class Grid3D : Singleton<Grid3D>
     {
+        #region Variables And Properties
         #region Serialized Fields
 
         [SerializeField]
@@ -139,8 +140,8 @@ namespace Grid
             [Tooltip("Spawn node coordinate associated with this binding.")]
             public Vector2Int Coordinates;
 
-            [Tooltip("Anchor used for spawning enemies; position and rotation are forwarded.")]
-            public Transform SpawnPoint;
+            [Tooltip("Optional sliding door paired with this spawn point for build-phase previews.")]
+            public SpawnPointDoor SlidingDoor;
         }
         #endregion
 
@@ -164,7 +165,9 @@ namespace Grid
         }
 
         #endregion
+        #endregion
 
+        #region Methods
         #region Unity
 
         /// <summary>
@@ -609,9 +612,9 @@ namespace Grid
         }
 
         /// <summary>
-        /// Returns the spawn point anchor associated with a spawn coordinate when present.
+        /// Returns the spawn door assigned to a spawn coordinate when present.
         /// </summary>
-        public Transform GetSpawnPoint(Vector2Int coords)
+        public SpawnPointDoor GetSpawnDoor(Vector2Int coords)
         {
             if (spawnNodeBindings == null || spawnNodeBindings.Length == 0)
                 return null;
@@ -619,7 +622,7 @@ namespace Grid
             for (int i = 0; i < spawnNodeBindings.Length; i++)
             {
                 if (spawnNodeBindings[i].Coordinates == coords)
-                    return spawnNodeBindings[i].SpawnPoint;
+                    return spawnNodeBindings[i].SlidingDoor;
             }
 
             return null;
@@ -753,6 +756,7 @@ namespace Grid
             gridInitialized = false;
             InitializeGrid();
         }
+        #endregion
         #endregion
 
         #region NestedClasses
