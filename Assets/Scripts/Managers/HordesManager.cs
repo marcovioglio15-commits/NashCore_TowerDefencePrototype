@@ -4,6 +4,7 @@ using UnityEngine;
 using Grid;
 using Scriptables.Enemies;
 using Enemy;
+using Player;
 
 /// <summary>
 /// Coordinates ordered hordes of waves, spawns enemies from grid-defined spawn nodes, and drives phase transitions.
@@ -11,20 +12,23 @@ using Enemy;
 public class HordesManager : Singleton<HordesManager>
 {
     #region Serialized Fields
-    [Tooltip("Grid used to resolve spawn nodes and optional spawn point bindings.")]
     [Header("Dependencies")]
+    [Tooltip("Grid used to resolve spawn nodes and optional spawn point bindings.")]
     [SerializeField] private Grid3D grid;
-
     [Tooltip("Game manager controlling phase flow.")]
     [SerializeField] private GameManager gameManager;
 
-    [Tooltip("Ordered list of hordes. Each entry is executed when entering the defence phase.")]
     [Header("Hordes")]
+    [Tooltip("Ordered list of hordes. Each entry is executed when entering the defence phase.")]
     [SerializeField] private List<HordeDefinition> hordes = new List<HordeDefinition>();
 
-    [Tooltip("Seconds waited after entering defence before the first wave of a horde begins.")]
     [Header("Timing")]
+    [Tooltip("Seconds waited after entering defence before the first wave of a horde begins.")]
     [SerializeField] private float defenceStartDelay = 0.5f;
+
+    [Header("Player")]
+    [Tooltip("Reference to PlayerHealth component")]
+    [SerializeField] private PlayerHealth cachedPlayerHealth;
     #endregion
 
     #region Runtime
@@ -32,7 +36,6 @@ public class HordesManager : Singleton<HordesManager>
     private int activeEnemies;
     private Coroutine hordeRoutine;
     private bool hordeActive;
-    private Player.PlayerHealth cachedPlayerHealth;
     #endregion
 
     #region Properties
@@ -268,12 +271,12 @@ public class HordesManager : Singleton<HordesManager>
     /// <summary>
     /// Locates the player health component once and caches it.
     /// </summary>
-    private Player.PlayerHealth GetPlayerHealth()
+    private PlayerHealth GetPlayerHealth()
     {
         if (cachedPlayerHealth != null)
             return cachedPlayerHealth;
 
-        Debug.LogError("Missing serialized variable 'cachedPlayerHealth' in HordesManager. Recurring to reflection as an emergency measure.");
+       // Debug.LogError("Missing serialized variable 'cachedPlayerHealth' in HordesManager. Recurring to reflection as an emergency measure.");
         cachedPlayerHealth = FindFirstObjectByType<Player.PlayerHealth>(FindObjectsInactive.Exclude);
         return cachedPlayerHealth;
     }
