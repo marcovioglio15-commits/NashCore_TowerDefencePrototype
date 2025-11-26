@@ -12,97 +12,57 @@ namespace Grid
     {
         #region Variables And Properties
         #region Serialized Fields
-
-        [SerializeField]
+        [Header("Grid Settings")]
         [Tooltip("Number of cells along the X axis of the grid.")]
-        private int gridSizeX = 10;
-
-        [SerializeField]
+        [SerializeField] private int gridSizeX = 10;
         [Tooltip("Number of cells along the Z axis of the grid.")]
-        private int gridSizeZ = 10;
-
-        [SerializeField]
+        [SerializeField] private int gridSizeZ = 10;
         [Tooltip("Offset relative to transform.position used as grid origin. Y defines grid height.")]
-        private Vector3 originOffset = Vector3.zero;
-
-        [SerializeField]
+        [SerializeField] private Vector3 originOffset = Vector3.zero;
         [Tooltip("Size of each cell in world units.")]
-        private float cellSize = 1.0f;
+        [SerializeField] private float cellSize = 1.0f;
 
         [Header("Height Sampling")]
-
-        [SerializeField]
         [Tooltip("Layer mask used to snap node height to the nearest floor surface.")]
-        private LayerMask floorLayerMask;
-
-        [SerializeField]
+        [SerializeField] private LayerMask floorLayerMask;
         [Tooltip("Half-height in meters used when probing above and below each node for the Floor surface.")]
-        private float floorProbeHalfHeight = 6f;
+        [SerializeField] private float floorProbeHalfHeight = 6f;
 
         [Header("Static Map Configuration")]
-
-        [SerializeField]
         [Tooltip("Grid coordinates that are walkable.")]
-        private Vector2Int[] walkableNodes;
-
-        [SerializeField]
+        [SerializeField] private Vector2Int[] walkableNodes;
         [Tooltip("Grid coordinates where towers can be built.")]
-        private Vector2Int[] buildableNodes;
-
-        [SerializeField]
+        [SerializeField] private Vector2Int[] buildableNodes;
         [Tooltip("Grid coordinates used as enemy goal nodes.")]
-        private Vector2Int[] enemyGoalCells;
+        [SerializeField] private Vector2Int[] enemyGoalCells;
 
         [Header("Enemy Spawn Points")]
-
-        [SerializeField]
         [Tooltip("Grid coordinates used as enemy spawn points.")]
-        private Vector2Int[] enemySpawnCells;
-
+        [SerializeField] private Vector2Int[] enemySpawnCells;
         [Tooltip("Optional spawn point bindings assigned to enemy spawn cells for precise placement.")]
-        [SerializeField]
-        private SpawnNodeBinding[] spawnNodeBindings;
+        [SerializeField]private SpawnNodeBinding[] spawnNodeBindings;
 
         [Header("Gizmos")]
-
-        [SerializeField]
         [Tooltip("Draws grid gizmos when the object is selected.")]
-        private bool drawGridGizmos = true;
-
-        [SerializeField]
+        [SerializeField] private bool drawGridGizmos = true;
         [Tooltip("Displays (x,z) text above each node.")]
-        private bool drawNodeCoordinates = true;
-
-        [SerializeField]
+        [SerializeField]private bool drawNodeCoordinates = true;
         [Tooltip("Color used for walkable cells.")]
-        private Color walkableColor = new Color(0.0f, 1.0f, 0.0f, 0.35f);
-
-        [SerializeField]
+        [SerializeField]private Color walkableColor = new Color(0.0f, 1.0f, 0.0f, 0.35f);
         [Tooltip("Color used for buildable cells.")]
-        private Color buildableColor = new Color(0.0f, 0.5f, 1.0f, 0.35f);
-
-        [SerializeField]
+        [SerializeField]private Color buildableColor = new Color(0.0f, 0.5f, 1.0f, 0.35f);
         [Tooltip("Color used for enemy goal cells.")]
-        private Color goalColor = new Color(1.0f, 1.0f, 0.0f, 0.55f);
-
-        [SerializeField]
+        [SerializeField] private Color goalColor = new Color(1.0f, 1.0f, 0.0f, 0.55f);
         [Tooltip("Color used for enemy spawn nodes.")]
-        private Color spawnColor = new Color(1.0f, 0.0f, 0.0f, 0.55f);
-
-        [SerializeField]
+        [SerializeField]private Color spawnColor = new Color(1.0f, 0.0f, 0.0f, 0.55f);
         [Tooltip("Color used for disabled nodes.")]
-        private Color disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.35f);
-
-        [SerializeField]
+        [SerializeField] private Color disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.35f);
         [Tooltip("Color used for wireframe lines.")]
-        private Color wireColor = new Color(1.0f, 1.0f, 1.0f, 0.15f);
+        [SerializeField]private Color wireColor = new Color(1.0f, 1.0f, 1.0f, 0.15f);
 
         [Header("Visibility Bindings")]
-
-        [SerializeField]
         [Tooltip("Walls hidden only when a turret is possessed on the matching buildable node.")]
-        private BuildableWallBinding[] buildableWallBindings;
-
+        [SerializeField] private BuildableWallBinding[] buildableWallBindings;
         #endregion
 
         #region Runtime
@@ -228,7 +188,7 @@ namespace Grid
 
             if (gridSizeX < 1 || gridSizeZ < 1)
             {
-                graph = System.Array.Empty<GridNode>();
+                graph = Array.Empty<GridNode>();
                 gridInitialized = true;
                 return;
             }
@@ -448,7 +408,6 @@ namespace Grid
         #endregion
 
         #region Helpers
-
         private void ClampArrayCoords(Vector2Int[] arr)
         {
             if (arr == null)
