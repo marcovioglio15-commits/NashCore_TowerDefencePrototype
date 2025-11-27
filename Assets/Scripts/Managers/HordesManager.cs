@@ -34,6 +34,8 @@ public class HordesManager : Singleton<HordesManager>
 
     #region Runtime
     private int currentHordeIndex = -1;
+    private int nextWaveIndex;
+    private int activeHordeWaveCount;
     private int activeEnemies;
     private Coroutine hordeRoutine;
     private bool hordeActive;
@@ -51,7 +53,13 @@ public class HordesManager : Singleton<HordesManager>
     #region Properties
     public bool HasPendingHordes
     {
-        get { return currentHordeIndex + 1 < hordes.Count; }
+        get
+        {
+            if (hordeActive && activeHordeWaveCount > 0 && nextWaveIndex < activeHordeWaveCount)
+                return true;
+
+            return currentHordeIndex + 1 < hordes.Count;
+        }
     }
     #endregion
     #endregion
@@ -137,7 +145,7 @@ public class HordesManager : Singleton<HordesManager>
     #region Internal
     private void HandlePhaseChanged(GamePhase phase)
     {
-        if (phase == GamePhase.Defence)
+        if (phase == GamePhase.Defence && hordeRoutine == null)
         {
             BeginNextHorde();
             return;
@@ -155,7 +163,7 @@ public class HordesManager : Singleton<HordesManager>
     /// </summary>
     private void BeginNextHorde()
     {
-        if (hordeActive)
+        if (hordeActive || hordeRoutine != null)
             return;
 
         if (!HasPendingHordes)
@@ -169,6 +177,8 @@ public class HordesManager : Singleton<HordesManager>
 
         currentHordeIndex++;
         HordeDefinition definition = hordes[currentHordeIndex];
+        nextWaveIndex = 0;
+        activeHordeWaveCount = definition.Waves != null ? definition.Waves.Count : 0;
         hordeRoutine = StartCoroutine(RunHorde(definition));
     }
 
@@ -253,23 +263,6 @@ public class HordesManager : Singleton<HordesManager>
     }
 
     /// <summary>
-    /// Closes all doors after a macro wave and prepares the correct lanes for the upcoming one when present.
-    /// </summary>
-    private void PrepareDoorsForUpcomingWave(IReadOnlyList<HordeWave> waves, int completedIndex)
-    {
-        CloseAllSpawnDoors();
-        if (waves == null)
-            return;
-
-        int nextIndex = completedIndex + 1;
-        if (nextIndex < 0 || nextIndex >= waves.Count)
-            return;
-
-        IReadOnlyList<Vector2Int> previewNodes = ResolveSpawnNodesForWave(waves[nextIndex]);
-        ApplyDoorPreview(previewNodes);
-    }
-
-    /// <summary>
     /// Builds the cached list of doors using grid bindings to avoid repeated lookups.
     /// </summary>
     private void CacheSpawnDoors()
@@ -299,20 +292,54 @@ public class HordesManager : Singleton<HordesManager>
     {
         previewNodesBuffer.Clear();
 
+        IReadOnlyList<Vector2Int> nodes;
+        if (TryResolveUpcomingWaveNodes(out nodes))
+            return nodes;
+
+        return null;
+    }
+
+    /// <summary>
+    /// Attempts to find spawn nodes for the next wave in the current horde or the first wave of the next horde.
+    /// </summary>
+    private bool TryResolveUpcomingWaveNodes(out IReadOnlyList<Vector2Int> nodes)
+    {
+        nodes = null;
         if (hordes == null || hordes.Count == 0)
-            return null;
+            return false;
 
-        int nextHordeIndex = currentHordeIndex + 1;
-        if (nextHordeIndex < 0 || nextHordeIndex >= hordes.Count)
-            return null;
+        if (hordeActive && currentHordeIndex >= 0 && currentHordeIndex < hordes.Count && activeHordeWaveCount > 0)
+        {
+            IReadOnlyList<HordeWave> activeWaves = hordes[currentHordeIndex].Waves;
+            nodes = ResolveWaveListNodes(activeWaves, nextWaveIndex);
+            if (nodes != null && nodes.Count > 0)
+                return true;
+        }
 
-        HordeDefinition horde = hordes[nextHordeIndex];
-        IReadOnlyList<HordeWave> waves = horde.Waves;
+        int upcomingHordeIndex = currentHordeIndex + 1;
+        if (upcomingHordeIndex >= 0 && upcomingHordeIndex < hordes.Count)
+        {
+            IReadOnlyList<HordeWave> upcomingWaves = hordes[upcomingHordeIndex].Waves;
+            nodes = ResolveWaveListNodes(upcomingWaves, 0);
+            if (nodes != null && nodes.Count > 0)
+                return true;
+        }
+
+        nodes = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Scans a list of waves starting from the provided index until nodes are found.
+    /// </summary>
+    private IReadOnlyList<Vector2Int> ResolveWaveListNodes(IReadOnlyList<HordeWave> waves, int startIndex)
+    {
         if (waves == null || waves.Count == 0)
             return null;
 
+        int clampedStart = Mathf.Max(0, startIndex);
         int waveCount = waves.Count;
-        for (int i = 0; i < waveCount; i++)
+        for (int i = clampedStart; i < waveCount; i++)
         {
             IReadOnlyList<Vector2Int> nodes = ResolveSpawnNodesForWave(waves[i]);
             if (nodes != null && nodes.Count > 0)
@@ -369,24 +396,73 @@ public class HordesManager : Singleton<HordesManager>
         hordeActive = true;
         activeEnemies = 0;
         nextSubWaveId = 0;
+        nextWaveIndex = 0;
+        activeHordeWaveCount = definition.Waves != null ? definition.Waves.Count : 0;
         subWaveStates.Clear();
         scheduledSubWaveRoutines.Clear();
         if (defenceStartDelay > 0f)
             yield return new WaitForSeconds(defenceStartDelay);
 
         IReadOnlyList<HordeWave> waves = definition.Waves;
-        int waveCount = waves.Count;
-        for (int i = 0; i < waveCount; i++)
+        if (activeHordeWaveCount == 0)
         {
-            HordeWave wave = waves[i];
-            yield return StartCoroutine(RunMacroWave(wave));
-            PrepareDoorsForUpcomingWave(waves, i);
+            FinalizeHordeCompletion();
+            hordeActive = false;
+            hordeRoutine = null;
+            activeHordeWaveCount = 0;
+            nextWaveIndex = 0;
+            yield break;
         }
 
-        yield return new WaitUntil(() => activeEnemies == 0);
+        while (nextWaveIndex < activeHordeWaveCount)
+        {
+            HordeWave wave = waves[nextWaveIndex];
+            yield return StartCoroutine(RunMacroWave(wave));
+            yield return new WaitUntil(() => activeEnemies == 0);
+            nextWaveIndex++;
+
+            if (nextWaveIndex < activeHordeWaveCount)
+            {
+                SwitchToBuildingBetweenWaves();
+                yield return new WaitUntil(() => IsDefencePhaseActive());
+                if (defenceStartDelay > 0f)
+                    yield return new WaitForSeconds(defenceStartDelay);
+            }
+        }
+
         FinalizeHordeCompletion();
         hordeActive = false;
         hordeRoutine = null;
+        activeHordeWaveCount = 0;
+        nextWaveIndex = 0;
+    }
+
+    /// <summary>
+    /// Forces the game back to building after a macro wave clears and refreshes lane previews.
+    /// </summary>
+    private void SwitchToBuildingBetweenWaves()
+    {
+        GameManager targetManager = ResolveGameManager();
+        if (targetManager != null)
+        {
+            targetManager.ForcePhase(GamePhase.Building);
+            return;
+        }
+
+        CloseAllSpawnDoors();
+        PreviewNextWaveDoors();
+    }
+
+    /// <summary>
+    /// Returns true when the current phase is defence.
+    /// </summary>
+    private bool IsDefencePhaseActive()
+    {
+        GameManager targetManager = ResolveGameManager();
+        if (targetManager == null)
+            return true;
+
+        return targetManager.CurrentPhase == GamePhase.Defence;
     }
 
     /// <summary>
@@ -823,7 +899,7 @@ public class HordesManager : Singleton<HordesManager>
 
         if (HasPendingHordes)
         {
-            GameManager targetManager = gameManager != null ? gameManager : GameManager.Instance;
+            GameManager targetManager = ResolveGameManager();
             if (targetManager != null)
                 targetManager.ForcePhase(GamePhase.Building);
         }
@@ -831,6 +907,17 @@ public class HordesManager : Singleton<HordesManager>
         {
             EventsManager.InvokeGameVictoryAchieved();
         }
+    }
+
+    /// <summary>
+    /// Returns the cached game manager reference or the global instance when available.
+    /// </summary>
+    private GameManager ResolveGameManager()
+    {
+        if (gameManager != null)
+            return gameManager;
+
+        return GameManager.Instance;
     }
 
     /// <summary>
