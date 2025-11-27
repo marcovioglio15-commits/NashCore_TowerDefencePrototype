@@ -26,15 +26,15 @@ MonoBehaviour:
     magicResistance: 8
     passiveRegenPerSecond: 1.5
   targeting:
-    range: 16
+    range: 15
     turnRate: 240
     yawClampDegrees: 0
     deadZoneRadius: 0.5
     retargetInterval: 0.75
   automaticFire:
-    cadenceSeconds: 0.45
-    projectilesPerShot: 3
-    interProjectileDelay: 0.08
+    cadenceSeconds: 0.75
+    projectilesPerShot: 1
+    interProjectileDelay: 0.75
     pattern: 1
   freeAimFire:
     cadenceSeconds: 0.25

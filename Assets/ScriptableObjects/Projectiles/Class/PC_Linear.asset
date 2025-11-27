@@ -16,15 +16,17 @@ MonoBehaviour:
   icon: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
   projectilePrefab: {fileID: 6394636386828153362, guid: ce6d44e36cb030841845097da1ccf13a, type: 3}
   pool: {fileID: 11400000, guid: 4e4864ca9534c6f41a5e8d6f2f1e6afd, type: 2}
-  damage: 12
+  damage: 15
   criticalChance: 0.1
   criticalMultiplier: 1.5
   pierceFalloffRatio: 0.2
   damageProbeRadius: 0.25
-  speed: 22
+  speed: 5
   maxPiercedTargets: 1
   lifetimeSeconds: 5
   maxDistance: 25
   splashRadius: 0
+  statusEffect: 0
   statusChance: 0.15
   statusDurationSeconds: 1.75
+  statusSlowPercent: 0.35
