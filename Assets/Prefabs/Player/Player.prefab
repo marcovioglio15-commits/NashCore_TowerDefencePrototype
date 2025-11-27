@@ -114,12 +114,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   targetCamera: {fileID: 0}
-  cameraLocalOffset: {x: 0, y: 0.1, z: -0.85}
+  cameraLocalOffset: {x: 0, y: 0.2, z: 0}
   enterLerpSeconds: 0.4
   exitLerpSeconds: 0.35
   axisMode: 2
-  yawSensitivity: 0.35
-  pitchSensitivity: 0.3
+  yawSensitivity: 0.15
+  pitchSensitivity: 0.15
   pitchInputDeadZone: 1.5
   pitchUpClampDegrees: 55
   pitchDownClampDegrees: 35
@@ -136,6 +136,11 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1024
   auxiliaryFreeAimRenderers:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
