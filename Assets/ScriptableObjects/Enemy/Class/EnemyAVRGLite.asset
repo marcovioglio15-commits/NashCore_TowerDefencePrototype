@@ -10,23 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 489fd5302b9fd3b40b83d85274960d1e, type: 3}
-  m_Name: EnemyClass
+  m_Name: EnemyAVRGLite
   m_EditorClassIdentifier: 
-  key: AVRG
-  displayName: AVRG
-  description: The bad guy.
+  key: AVRGLite
+  displayName: AVRGLite
+  description: Altough it may look like a Mignon from the hit movie Disruptable Me,
+    I don't know how to end this sentence.
   icon: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  enemyPrefab: {fileID: 5124621794192595975, guid: 5c471e4711cf1714da4038b6417d9e32, type: 3}
-  enemyPool: {fileID: 11400000, guid: 48e5c1e526e2f564999d2cde4072b2a5, type: 2}
+  enemyPrefab: {fileID: 5124621794192595975, guid: bac81078257e040488ec4d0a90f8b24e, type: 3}
+  enemyPool: {fileID: 11400000, guid: b7f59d6c45b47b948ba16d33ecf00622, type: 2}
   durability:
-    maxHealth: 60
+    maxHealth: 45
     damageNegationPercent: 0
   mobility:
     movementSpeed: 100
   offense:
     shieldDamage: 15
   rewards:
-    scrapValue: 10
+    scrapValue: 5
   contact:
     effect: 0
     contactRange: 1.3

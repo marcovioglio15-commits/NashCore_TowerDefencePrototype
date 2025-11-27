@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 489fd5302b9fd3b40b83d85274960d1e, type: 3}
+  m_Name: EnemyB055
+  m_EditorClassIdentifier: 
+  key: B055
+  displayName: B055
+  description: John Boss.
+  icon: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+  enemyPrefab: {fileID: 5124621794192595975, guid: bac81078257e040488ec4d0a90f8b24e, type: 3}
+  enemyPool: {fileID: 11400000, guid: b7f59d6c45b47b948ba16d33ecf00622, type: 2}
+  durability:
+    maxHealth: 45
+    damageNegationPercent: 0
+  mobility:
+    movementSpeed: 100
+  offense:
+    shieldDamage: 15
+  rewards:
+    scrapValue: 5
+  contact:
+    effect: 0
+    contactRange: 1.3
