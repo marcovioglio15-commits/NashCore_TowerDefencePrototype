@@ -117,27 +117,80 @@ public class HordesManagerEditor : Editor
         for (int i = 0; i < waveCount; i++)
         {
             SerializedProperty waveProperty = wavesProperty.GetArrayElementAtIndex(i);
-            SerializedProperty enemyTypesProperty = waveProperty.FindPropertyRelative("enemyTypes");
-            SerializedProperty spawnAssignmentsProperty = waveProperty.FindPropertyRelative("spawnAssignments");
-            SerializedProperty spawnNodesProperty = waveProperty.FindPropertyRelative("spawnNodes");
-            SerializedProperty spawnCadenceProperty = waveProperty.FindPropertyRelative("spawnCadenceSeconds");
-            SerializedProperty advanceModeProperty = waveProperty.FindPropertyRelative("advanceMode");
-            SerializedProperty advanceDelayProperty = waveProperty.FindPropertyRelative("advanceDelaySeconds");
+            SerializedProperty labelProperty = waveProperty.FindPropertyRelative("label");
+            SerializedProperty subWavesProperty = waveProperty.FindPropertyRelative("subWaves");
 
             waveProperty.isExpanded = EditorGUILayout.Foldout(waveProperty.isExpanded, $"Wave {i + 1}", true, foldoutStyle);
             if (waveProperty.isExpanded)
             {
                 EditorGUI.indentLevel++;
-                DrawEnemyTypesList(enemyTypesProperty);
-                EditorGUILayout.PropertyField(spawnCadenceProperty);
-                DrawSpawnAssignments(spawnAssignmentsProperty, enemyTypesProperty, spawnCoords, spawnLabels);
-                DrawSpawnNodesSelector(spawnNodesProperty, spawnCoords, spawnLabels);
-                EditorGUILayout.PropertyField(advanceModeProperty);
-                EditorGUILayout.PropertyField(advanceDelayProperty);
+                EditorGUILayout.PropertyField(labelProperty, new GUIContent("Label"));
+                DrawSubWavesList(subWavesProperty, spawnCoords, spawnLabels);
                 EditorGUI.indentLevel--;
                 EditorGUILayout.Space();
             }
         }
+    }
+
+    /// <summary>
+    /// Renders sub-wave entries inside a macro wave with timing and spawn configuration.
+    /// </summary>
+    private void DrawSubWavesList(SerializedProperty subWavesProperty, Vector2Int[] spawnCoords, string[] spawnLabels)
+    {
+        if (subWavesProperty == null)
+            return;
+
+        int startingIndent = EditorGUI.indentLevel;
+        subWavesProperty.isExpanded = EditorGUILayout.Foldout(subWavesProperty.isExpanded, "Sub-Waves", true, foldoutStyle);
+        if (!subWavesProperty.isExpanded)
+            return;
+
+        EditorGUI.indentLevel++;
+        int subWaveCount = subWavesProperty.arraySize;
+        for (int i = 0; i < subWaveCount; i++)
+        {
+            SerializedProperty subWaveProperty = subWavesProperty.GetArrayElementAtIndex(i);
+            SerializedProperty labelProperty = subWaveProperty.FindPropertyRelative("label");
+            SerializedProperty enemyTypesProperty = subWaveProperty.FindPropertyRelative("enemyTypes");
+            SerializedProperty spawnAssignmentsProperty = subWaveProperty.FindPropertyRelative("spawnAssignments");
+            SerializedProperty spawnNodesProperty = subWaveProperty.FindPropertyRelative("spawnNodes");
+            SerializedProperty spawnCadenceProperty = subWaveProperty.FindPropertyRelative("spawnCadenceSeconds");
+            SerializedProperty startModeProperty = subWaveProperty.FindPropertyRelative("startMode");
+            SerializedProperty startDelayProperty = subWaveProperty.FindPropertyRelative("startDelaySeconds");
+
+            subWaveProperty.isExpanded = EditorGUILayout.Foldout(subWaveProperty.isExpanded, $"Sub-Wave {i + 1}", true, foldoutStyle);
+            if (subWaveProperty.isExpanded)
+            {
+                int contentIndent = EditorGUI.indentLevel + 1;
+                EditorGUI.indentLevel = contentIndent;
+                EditorGUILayout.PropertyField(labelProperty, new GUIContent("Label"));
+                DrawEnemyTypesList(enemyTypesProperty);
+                EditorGUILayout.PropertyField(spawnCadenceProperty, new GUIContent("Spawn Cadence Seconds"));
+                DrawSpawnAssignments(spawnAssignmentsProperty, enemyTypesProperty, spawnCoords, spawnLabels);
+                if (spawnAssignmentsProperty != null && spawnAssignmentsProperty.arraySize == 0)
+                    DrawSpawnNodesSelector(spawnNodesProperty, spawnCoords, spawnLabels);
+                EditorGUILayout.PropertyField(startModeProperty, new GUIContent("Start Mode"));
+                EditorGUILayout.PropertyField(startDelayProperty, new GUIContent("Start Delay Seconds"));
+                EditorGUI.indentLevel = contentIndent - 1;
+                EditorGUILayout.Space();
+            }
+
+            if (GUILayout.Button("Remove Sub-Wave"))
+            {
+                subWavesProperty.DeleteArrayElementAtIndex(i);
+                EditorGUI.indentLevel = startingIndent;
+                return;
+            }
+        }
+
+        EditorGUILayout.BeginHorizontal();
+        if (GUILayout.Button("Add Sub-Wave"))
+            AppendSubWave(subWavesProperty, spawnCoords);
+
+        if (GUILayout.Button("Remove Last Sub-Wave") && subWavesProperty.arraySize > 0)
+            subWavesProperty.DeleteArrayElementAtIndex(subWavesProperty.arraySize - 1);
+        EditorGUILayout.EndHorizontal();
+        EditorGUI.indentLevel--;
     }
 
     /// <summary>
@@ -257,8 +310,6 @@ public class HordesManagerEditor : Editor
             return;
 
         EditorGUI.indentLevel++;
-        EditorGUILayout.BeginHorizontal();
-        GUILayout.Space(12f);
         EditorGUILayout.BeginVertical();
         int assignmentCount = spawnAssignmentsProperty.arraySize;
         for (int i = 0; i < assignmentCount; i++)
@@ -283,7 +334,6 @@ public class HordesManagerEditor : Editor
                 EditorGUILayout.EndVertical();
                 EditorGUI.indentLevel--;
                 EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
                 return;
             }
             EditorGUILayout.EndVertical();
@@ -314,7 +364,6 @@ public class HordesManagerEditor : Editor
             spawnAssignmentsProperty.ClearArray();
         EditorGUILayout.EndHorizontal();
         EditorGUILayout.EndVertical();
-        EditorGUILayout.EndHorizontal();
         EditorGUI.indentLevel--;
     }
 
@@ -418,6 +467,7 @@ public class HordesManagerEditor : Editor
             return;
         }
 
+        EditorGUILayout.LabelField("Spawn Nodes (used when Assignments are empty)", EditorStyles.boldLabel);
         int currentSize = spawnNodesProperty.arraySize;
         for (int i = 0; i < currentSize; i++)
         {
@@ -426,7 +476,28 @@ public class HordesManagerEditor : Editor
             int selectedIndex = System.Array.IndexOf(spawnCoords, currentValue);
             if (selectedIndex < 0)
                 selectedIndex = 0;
+
+            int newIndex = EditorGUILayout.Popup($"Spawn Node #{i + 1}", selectedIndex, spawnLabels);
+            if (newIndex >= 0 && newIndex < spawnCoords.Length)
+                element.vector2IntValue = spawnCoords[newIndex];
+
+            if (GUILayout.Button("Remove Node"))
+            {
+                spawnNodesProperty.DeleteArrayElementAtIndex(i);
+                return;
+            }
         }
+
+        EditorGUILayout.BeginHorizontal();
+        if (GUILayout.Button("Add Spawn Node"))
+        {
+            int newIndex = spawnNodesProperty.arraySize;
+            spawnNodesProperty.InsertArrayElementAtIndex(newIndex);
+            spawnNodesProperty.GetArrayElementAtIndex(newIndex).vector2IntValue = spawnCoords[0];
+        }
+        if (GUILayout.Button("Clear Spawn Nodes"))
+            spawnNodesProperty.ClearArray();
+        EditorGUILayout.EndHorizontal();
     }
 
     /// <summary>
@@ -472,12 +543,40 @@ public class HordesManagerEditor : Editor
         if (wave == null)
             return;
 
-        SerializedProperty enemyTypesProperty = wave.FindPropertyRelative("enemyTypes");
-        SerializedProperty spawnAssignmentsProperty = wave.FindPropertyRelative("spawnAssignments");
-        SerializedProperty spawnNodesProperty = wave.FindPropertyRelative("spawnNodes");
-        SerializedProperty spawnCadenceProperty = wave.FindPropertyRelative("spawnCadenceSeconds");
-        SerializedProperty advanceModeProperty = wave.FindPropertyRelative("advanceMode");
-        SerializedProperty advanceDelayProperty = wave.FindPropertyRelative("advanceDelaySeconds");
+        SerializedProperty labelProperty = wave.FindPropertyRelative("label");
+        SerializedProperty subWavesProperty = wave.FindPropertyRelative("subWaves");
+
+        if (labelProperty != null)
+            labelProperty.stringValue = string.Empty;
+
+        if (subWavesProperty != null)
+        {
+            subWavesProperty.ClearArray();
+            AppendSubWave(subWavesProperty, spawnCoords);
+        }
+    }
+
+    /// <summary>
+    /// Appends a sub-wave with default spawn settings and first spawn node preselected when available.
+    /// </summary>
+    private void AppendSubWave(SerializedProperty subWavesProperty, Vector2Int[] spawnCoords)
+    {
+        int newIndex = subWavesProperty.arraySize;
+        subWavesProperty.InsertArrayElementAtIndex(newIndex);
+        SerializedProperty subWave = subWavesProperty.GetArrayElementAtIndex(newIndex);
+        if (subWave == null)
+            return;
+
+        SerializedProperty labelProperty = subWave.FindPropertyRelative("label");
+        SerializedProperty enemyTypesProperty = subWave.FindPropertyRelative("enemyTypes");
+        SerializedProperty spawnAssignmentsProperty = subWave.FindPropertyRelative("spawnAssignments");
+        SerializedProperty spawnNodesProperty = subWave.FindPropertyRelative("spawnNodes");
+        SerializedProperty spawnCadenceProperty = subWave.FindPropertyRelative("spawnCadenceSeconds");
+        SerializedProperty startModeProperty = subWave.FindPropertyRelative("startMode");
+        SerializedProperty startDelayProperty = subWave.FindPropertyRelative("startDelaySeconds");
+
+        if (labelProperty != null)
+            labelProperty.stringValue = string.Empty;
 
         if (enemyTypesProperty != null)
         {
@@ -511,13 +610,6 @@ public class HordesManagerEditor : Editor
         if (spawnAssignmentsProperty != null)
             spawnAssignmentsProperty.ClearArray();
 
-        if (spawnCadenceProperty != null)
-            spawnCadenceProperty.floatValue = 0.5f;
-        if (advanceModeProperty != null)
-            advanceModeProperty.enumValueIndex = (int)WaveAdvanceMode.FixedInterval;
-        if (advanceDelayProperty != null)
-            advanceDelayProperty.floatValue = 1f;
-
         if (spawnNodesProperty != null)
         {
             spawnNodesProperty.ClearArray();
@@ -527,6 +619,15 @@ public class HordesManagerEditor : Editor
                 spawnNodesProperty.GetArrayElementAtIndex(0).vector2IntValue = spawnCoords[0];
             }
         }
+
+        if (spawnCadenceProperty != null)
+            spawnCadenceProperty.floatValue = 0.5f;
+
+        if (startModeProperty != null)
+            startModeProperty.enumValueIndex = (int)SubWaveStartMode.AfterPreviousClear;
+
+        if (startDelayProperty != null)
+            startDelayProperty.floatValue = 0f;
     }
 
     /// <summary>

@@ -43,6 +43,9 @@ public class HordesManager : Singleton<HordesManager>
     private readonly List<WaveSpawnAssignment> spawnAssignmentBuffer = new List<WaveSpawnAssignment>();
     private readonly List<Vector2Int> previewNodesBuffer = new List<Vector2Int>();
     private readonly List<WaveEnemyTypeState> enemyTypeStatesBuffer = new List<WaveEnemyTypeState>();
+    private readonly Dictionary<int, SubWaveRuntimeState> subWaveStates = new Dictionary<int, SubWaveRuntimeState>();
+    private readonly List<Coroutine> scheduledSubWaveRoutines = new List<Coroutine>();
+    private int nextSubWaveId;
     #endregion
 
     #region Properties
@@ -86,6 +89,20 @@ public class HordesManager : Singleton<HordesManager>
             return;
 
         activeEnemies++;
+
+        if (enemy == null)
+            return;
+
+        EnemySpawnContext context = enemy.LastContext;
+        int subWaveId = context.SubWaveId;
+        if (subWaveId < 0)
+            return;
+
+        if (subWaveStates.TryGetValue(subWaveId, out SubWaveRuntimeState state))
+        {
+            state.AliveCount++;
+            subWaveStates[subWaveId] = state;
+        }
     }
 
     /// <summary>
@@ -98,6 +115,22 @@ public class HordesManager : Singleton<HordesManager>
 
         if (activeEnemies > 0)
             activeEnemies--;
+
+        if (enemy == null)
+            return;
+
+        EnemySpawnContext context = enemy.LastContext;
+        int subWaveId = context.SubWaveId;
+        if (subWaveId < 0)
+            return;
+
+        if (subWaveStates.TryGetValue(subWaveId, out SubWaveRuntimeState state))
+        {
+            if (state.AliveCount > 0)
+                state.AliveCount--;
+
+            subWaveStates[subWaveId] = state;
+        }
     }
     #endregion
 
@@ -106,13 +139,15 @@ public class HordesManager : Singleton<HordesManager>
     {
         if (phase == GamePhase.Defence)
         {
-            //CloseAllSpawnDoors();
             BeginNextHorde();
             return;
         }
 
         if (phase == GamePhase.Building)
+        {
+            CloseAllSpawnDoors();
             PreviewNextWaveDoors();
+        }
     }
 
     /// <summary>
@@ -152,9 +187,43 @@ public class HordesManager : Singleton<HordesManager>
             return;
 
         IReadOnlyList<Vector2Int> previewNodes = ResolveNextWaveSpawnNodes();
+        ApplyDoorPreview(previewNodes);
+    }
+
+    /// <summary>
+    /// Closes all known spawn doors, used before defence begins or when no preview is available.
+    /// </summary>
+    private void CloseAllSpawnDoors()
+    {
+        if (spawnDoors.Count == 0)
+            CacheSpawnDoors();
+
+        int doorCount = spawnDoors.Count;
+        for (int i = 0; i < doorCount; i++)
+        {
+            SpawnPointDoor door = spawnDoors[i];
+            if (door != null)
+                door.CloseDoor();
+        }
+    }
+
+    /// <summary>
+    /// Opens only the doors mapped to the provided nodes and closes the rest.
+    /// </summary>
+    private void ApplyDoorPreview(IReadOnlyList<Vector2Int> previewNodes)
+    {
+        if (grid == null)
+            return;
+
+        if (spawnDoors.Count == 0)
+            CacheSpawnDoors();
+
+        if (spawnDoors.Count == 0)
+            return;
+
         if (previewNodes == null || previewNodes.Count == 0)
         {
-            //CloseAllSpawnDoors();
+            CloseAllSpawnDoors();
             return;
         }
 
@@ -184,20 +253,20 @@ public class HordesManager : Singleton<HordesManager>
     }
 
     /// <summary>
-    /// Closes all known spawn doors, used before defence begins or when no preview is available.
+    /// Closes all doors after a macro wave and prepares the correct lanes for the upcoming one when present.
     /// </summary>
-    private void CloseAllSpawnDoors()
+    private void PrepareDoorsForUpcomingWave(IReadOnlyList<HordeWave> waves, int completedIndex)
     {
-        if (spawnDoors.Count == 0)
-            CacheSpawnDoors();
+        CloseAllSpawnDoors();
+        if (waves == null)
+            return;
 
-        int doorCount = spawnDoors.Count;
-        for (int i = 0; i < doorCount; i++)
-        {
-            SpawnPointDoor door = spawnDoors[i];
-            if (door != null)
-                door.CloseDoor();
-        }
+        int nextIndex = completedIndex + 1;
+        if (nextIndex < 0 || nextIndex >= waves.Count)
+            return;
+
+        IReadOnlyList<Vector2Int> previewNodes = ResolveSpawnNodesForWave(waves[nextIndex]);
+        ApplyDoorPreview(previewNodes);
     }
 
     /// <summary>
@@ -245,7 +314,30 @@ public class HordesManager : Singleton<HordesManager>
         int waveCount = waves.Count;
         for (int i = 0; i < waveCount; i++)
         {
-            IReadOnlyList<WaveSpawnAssignment> assignments = waves[i].SpawnAssignments;
+            IReadOnlyList<Vector2Int> nodes = ResolveSpawnNodesForWave(waves[i]);
+            if (nodes != null && nodes.Count > 0)
+                return nodes;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Resolves spawn nodes for the provided macro wave by inspecting its sub-waves.
+    /// </summary>
+    private IReadOnlyList<Vector2Int> ResolveSpawnNodesForWave(HordeWave wave)
+    {
+        previewNodesBuffer.Clear();
+
+        IReadOnlyList<HordeSubWave> subWaves = wave.SubWaves;
+        if (subWaves == null || subWaves.Count == 0)
+            return null;
+
+        int subWaveCount = subWaves.Count;
+        for (int i = 0; i < subWaveCount; i++)
+        {
+            HordeSubWave subWave = subWaves[i];
+            IReadOnlyList<WaveSpawnAssignment> assignments = subWave.SpawnAssignments;
             if (assignments != null && assignments.Count > 0)
             {
                 previewNodesBuffer.Clear();
@@ -261,7 +353,7 @@ public class HordesManager : Singleton<HordesManager>
                     return previewNodesBuffer;
             }
 
-            IReadOnlyList<Vector2Int> nodes = waves[i].SpawnNodes;
+            IReadOnlyList<Vector2Int> nodes = subWave.SpawnNodes;
             if (nodes != null && nodes.Count > 0)
                 return nodes;
         }
@@ -276,26 +368,19 @@ public class HordesManager : Singleton<HordesManager>
     {
         hordeActive = true;
         activeEnemies = 0;
+        nextSubWaveId = 0;
+        subWaveStates.Clear();
+        scheduledSubWaveRoutines.Clear();
         if (defenceStartDelay > 0f)
             yield return new WaitForSeconds(defenceStartDelay);
 
         IReadOnlyList<HordeWave> waves = definition.Waves;
-        for (int i = 0; i < waves.Count; i++)
+        int waveCount = waves.Count;
+        for (int i = 0; i < waveCount; i++)
         {
             HordeWave wave = waves[i];
-            yield return StartCoroutine(SpawnWave(wave));
-
-            if (wave.AdvanceMode == WaveAdvanceMode.AfterClear)
-            {
-                yield return new WaitUntil(() => activeEnemies == 0);
-                if (wave.AdvanceDelaySeconds > 0f)
-                    yield return new WaitForSeconds(wave.AdvanceDelaySeconds);
-            }
-            else
-            {
-                if (wave.AdvanceDelaySeconds > 0f)
-                    yield return new WaitForSeconds(wave.AdvanceDelaySeconds);
-            }
+            yield return StartCoroutine(RunMacroWave(wave));
+            PrepareDoorsForUpcomingWave(waves, i);
         }
 
         yield return new WaitUntil(() => activeEnemies == 0);
@@ -305,17 +390,106 @@ public class HordesManager : Singleton<HordesManager>
     }
 
     /// <summary>
-    /// Spawns all enemies for a single wave honoring cadence.
+    /// Executes all configured sub-waves for a macro wave honoring start modes and dependencies.
     /// </summary>
-    private IEnumerator SpawnWave(HordeWave wave)
+    private IEnumerator RunMacroWave(HordeWave wave)
     {
-        List<WaveEnemyType> enemyTypes = BuildEnemyTypesForWave(wave);
-        if (enemyTypes.Count == 0)
+        IReadOnlyList<HordeSubWave> subWaves = wave.SubWaves;
+        if (subWaves == null || subWaves.Count == 0)
             yield break;
 
-        List<WaveSpawnAssignment> spawnAssignments = BuildSpawnAssignments(wave, enemyTypes.Count);
-        if (spawnAssignments.Count == 0)
+        subWaveStates.Clear();
+        scheduledSubWaveRoutines.Clear();
+        int lastSequentialId = -1;
+        int subWaveCount = subWaves.Count;
+        float macroStartTime = Time.time;
+
+        for (int i = 0; i < subWaveCount; i++)
+        {
+            HordeSubWave subWave = subWaves[i];
+            int subWaveId = GetNextSubWaveId();
+            EnsureSubWaveState(subWaveId, subWave.Label);
+
+            if (!subWave.HasContent)
+            {
+                MarkSubWaveSpawningComplete(subWaveId);
+                continue;
+            }
+
+            if (subWave.StartMode == SubWaveStartMode.DelayFromWaveStart)
+            {
+                Coroutine routine = StartCoroutine(RunSubWaveAfterDelay(subWave, subWaveId, macroStartTime));
+                if (routine != null)
+                    scheduledSubWaveRoutines.Add(routine);
+
+                continue;
+            }
+
+            Coroutine sequentialRoutine = StartCoroutine(RunSubWaveSequential(subWave, subWaveId, lastSequentialId));
+            lastSequentialId = subWaveId;
+            if (sequentialRoutine != null)
+                yield return sequentialRoutine;
+        }
+
+        int scheduledCount = scheduledSubWaveRoutines.Count;
+        for (int i = 0; i < scheduledCount; i++)
+        {
+            Coroutine routine = scheduledSubWaveRoutines[i];
+            if (routine != null)
+                yield return routine;
+        }
+
+        yield return new WaitUntil(() => AreAllSubWavesCleared());
+    }
+
+    /// <summary>
+    /// Starts a sub-wave after a fixed offset from macro wave start.
+    /// </summary>
+    private IEnumerator RunSubWaveAfterDelay(HordeSubWave subWave, int subWaveId, float macroStartTime)
+    {
+        float targetTime = macroStartTime + Mathf.Max(0f, subWave.StartDelaySeconds);
+        float remaining = targetTime - Time.time;
+        if (remaining > 0f)
+            yield return new WaitForSeconds(remaining);
+
+        yield return StartCoroutine(RunSubWaveSpawns(subWave, subWaveId));
+        yield return new WaitUntil(() => IsSubWaveCleared(subWaveId));
+    }
+
+    /// <summary>
+    /// Starts a sub-wave once the previous sequential sub-wave is cleared.
+    /// </summary>
+    private IEnumerator RunSubWaveSequential(HordeSubWave subWave, int subWaveId, int dependencyId)
+    {
+        if (dependencyId >= 0)
+            yield return new WaitUntil(() => IsSubWaveCleared(dependencyId));
+
+        float delay = Mathf.Max(0f, subWave.StartDelaySeconds);
+        if (delay > 0f)
+            yield return new WaitForSeconds(delay);
+
+        yield return StartCoroutine(RunSubWaveSpawns(subWave, subWaveId));
+        yield return new WaitUntil(() => IsSubWaveCleared(subWaveId));
+    }
+
+    /// <summary>
+    /// Spawns all enemies for a single sub-wave honoring cadence and tracking sub-wave completion.
+    /// </summary>
+    private IEnumerator RunSubWaveSpawns(HordeSubWave subWave, int subWaveId)
+    {
+        List<WaveEnemyType> enemyTypes = BuildEnemyTypesForSubWave(subWave);
+        if (enemyTypes.Count == 0)
+        {
+            MarkSubWaveSpawningComplete(subWaveId);
             yield break;
+        }
+
+        List<WaveSpawnAssignment> spawnAssignments = BuildSpawnAssignments(subWave, enemyTypes.Count);
+        if (spawnAssignments.Count == 0)
+        {
+            MarkSubWaveSpawningComplete(subWaveId);
+            yield break;
+        }
 
         enemyTypeStatesBuffer.Clear();
         int totalRemaining = 0;
@@ -327,10 +501,14 @@ public class HordesManager : Singleton<HordesManager>
             totalRemaining += count;
         }
 
+        UpdateSubWaveSpawnBudget(subWaveId, totalRemaining);
         if (totalRemaining == 0)
+        {
+            MarkSubWaveSpawningComplete(subWaveId);
             yield break;
+        }
 
-        float cadence = Mathf.Max(0.05f, wave.SpawnCadenceSeconds);
+        float cadence = Mathf.Max(0.05f, subWave.SpawnCadenceSeconds);
         while (totalRemaining > 0)
         {
             bool spawnedThisCycle = false;
@@ -346,10 +524,11 @@ public class HordesManager : Singleton<HordesManager>
                 if (state.Definition == null || state.Definition.EnemyPool == null || state.RemainingCount <= 0)
                     continue;
 
-                SpawnEnemyInstance(state.Definition, assignment.SpawnNode, state.Modifiers, state.SpawnOffset);
+                SpawnEnemyInstance(state.Definition, assignment.SpawnNode, state.Modifiers, state.SpawnOffset, subWaveId);
                 state.RemainingCount--;
                 enemyTypeStatesBuffer[typeIndex] = state;
                 totalRemaining--;
+                DecrementSubWaveSpawnBudget(subWaveId);
                 spawnedThisCycle = true;
             }
 
@@ -358,19 +537,22 @@ public class HordesManager : Singleton<HordesManager>
                 if (!spawnedThisCycle)
                 {
                     Debug.LogWarning("Wave spawn aborted: remaining enemies could not be matched to any spawn assignments. Check per-spawner enemy type lists.");
+                    MarkSubWaveSpawningComplete(subWaveId);
                     yield break;
                 }
 
                 yield return new WaitForSeconds(cadence);
             }
         }
+
+        MarkSubWaveSpawningComplete(subWaveId);
     }
 
-    private List<WaveEnemyType> BuildEnemyTypesForWave(HordeWave wave)
+    private List<WaveEnemyType> BuildEnemyTypesForSubWave(HordeSubWave subWave)
     {
         enemyTypesBuffer.Clear();
 
-        IReadOnlyList<WaveEnemyType> configured = wave.EnemyTypes;
+        IReadOnlyList<WaveEnemyType> configured = subWave.EnemyTypes;
         if (configured != null && configured.Count > 0)
         {
             int configuredCount = configured.Count;
@@ -382,19 +564,19 @@ public class HordesManager : Singleton<HordesManager>
             }
         }
 
-        if (enemyTypesBuffer.Count == 0 && wave.HasLegacyEnemy && wave.LegacyEnemyDefinition != null && wave.LegacyEnemyDefinition.EnemyPool != null && wave.LegacyEnemyCount > 0)
-            enemyTypesBuffer.Add(new WaveEnemyType(wave.LegacyEnemyDefinition, wave.LegacyRuntimeModifiers, wave.LegacyEnemyCount, wave.LegacySpawnOffset));
+        if (enemyTypesBuffer.Count == 0 && subWave.HasLegacyEnemy && subWave.LegacyEnemyDefinition != null && subWave.LegacyEnemyDefinition.EnemyPool != null && subWave.LegacyEnemyCount > 0)
+            enemyTypesBuffer.Add(new WaveEnemyType(subWave.LegacyEnemyDefinition, subWave.LegacyRuntimeModifiers, subWave.LegacyEnemyCount, subWave.LegacySpawnOffset));
 
         return enemyTypesBuffer;
     }
 
-    private List<WaveSpawnAssignment> BuildSpawnAssignments(HordeWave wave, int enemyTypeCount)
+    private List<WaveSpawnAssignment> BuildSpawnAssignments(HordeSubWave subWave, int enemyTypeCount)
     {
         spawnAssignmentBuffer.Clear();
         if (enemyTypeCount <= 0)
             return spawnAssignmentBuffer;
 
-        IReadOnlyList<WaveSpawnAssignment> configured = wave.SpawnAssignments;
+        IReadOnlyList<WaveSpawnAssignment> configured = subWave.SpawnAssignments;
         if (configured != null && configured.Count > 0)
         {
             int configuredCount = configured.Count;
@@ -408,7 +590,7 @@ public class HordesManager : Singleton<HordesManager>
 
         if (spawnAssignmentBuffer.Count == 0)
         {
-            IReadOnlyList<Vector2Int> nodes = wave.SpawnNodes;
+            IReadOnlyList<Vector2Int> nodes = subWave.SpawnNodes;
             if (nodes != null && nodes.Count > 0)
             {
                 List<int> defaultAllowedTypes = BuildDefaultAllowedTypes(enemyTypeCount);
@@ -455,6 +637,95 @@ public class HordesManager : Singleton<HordesManager>
         return result;
     }
 
+    /// <summary>
+    /// Registers a sub-wave in the runtime dictionary with default counters.
+    /// </summary>
+    private void EnsureSubWaveState(int subWaveId, string label)
+    {
+        if (subWaveStates.ContainsKey(subWaveId))
+            return;
+
+        SubWaveRuntimeState state = new SubWaveRuntimeState(subWaveId, label);
+        subWaveStates[subWaveId] = state;
+    }
+
+    /// <summary>
+    /// Updates the remaining spawn budget for a sub-wave before emission begins.
+    /// </summary>
+    private void UpdateSubWaveSpawnBudget(int subWaveId, int totalToSpawn)
+    {
+        if (!subWaveStates.TryGetValue(subWaveId, out SubWaveRuntimeState state))
+            return;
+
+        state.RemainingToSpawn = totalToSpawn;
+        subWaveStates[subWaveId] = state;
+    }
+
+    /// <summary>
+    /// Decrements the tracked spawn budget as enemies are emitted.
+    /// </summary>
+    private void DecrementSubWaveSpawnBudget(int subWaveId)
+    {
+        if (!subWaveStates.TryGetValue(subWaveId, out SubWaveRuntimeState state))
+            return;
+
+        if (state.RemainingToSpawn > 0)
+            state.RemainingToSpawn--;
+
+        subWaveStates[subWaveId] = state;
+    }
+
+    /// <summary>
+    /// Flags a sub-wave as having completed its spawn routine.
+    /// </summary>
+    private void MarkSubWaveSpawningComplete(int subWaveId)
+    {
+        if (!subWaveStates.TryGetValue(subWaveId, out SubWaveRuntimeState state))
+            return;
+
+        state.SpawnRoutineCompleted = true;
+        state.RemainingToSpawn = 0;
+        subWaveStates[subWaveId] = state;
+    }
+
+    /// <summary>
+    /// Returns true when every tracked sub-wave has finished spawning and all of their enemies are cleared.
+    /// </summary>
+    private bool AreAllSubWavesCleared()
+    {
+        if (subWaveStates.Count == 0)
+            return true;
+
+        foreach (KeyValuePair<int, SubWaveRuntimeState> entry in subWaveStates)
+        {
+            if (!entry.Value.IsCleared)
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Returns true when a specific sub-wave has completed spawning and no active enemies remain.
+    /// </summary>
+    private bool IsSubWaveCleared(int subWaveId)
+    {
+        if (!subWaveStates.TryGetValue(subWaveId, out SubWaveRuntimeState state))
+            return true;
+
+        return state.IsCleared;
+    }
+
+    /// <summary>
+    /// Builds incremental identifiers for sub-wave tracking.
+    /// </summary>
+    private int GetNextSubWaveId()
+    {
+        int id = nextSubWaveId;
+        nextSubWaveId++;
+        return id;
+    }
+
     private int ResolveNextEnemyTypeIndex(in WaveSpawnAssignment assignment, List<WaveEnemyTypeState> states)
     {
         IReadOnlyList<int> allowedTypes = assignment.AllowedEnemyTypeIndices;
@@ -487,7 +758,7 @@ public class HordesManager : Singleton<HordesManager>
     /// <summary>
     /// Resolves context data and spawns one enemy instance at the requested spawn node.
     /// </summary>
-    private void SpawnEnemyInstance(EnemyClassDefinition definition, Vector2Int coords, EnemyRuntimeModifiers modifiers, Vector3 spawnOffset)
+    private void SpawnEnemyInstance(EnemyClassDefinition definition, Vector2Int coords, EnemyRuntimeModifiers modifiers, Vector3 spawnOffset, int subWaveId)
     {
         EnemyPoolSO pool = definition.EnemyPool;
         if (pool == null)
@@ -497,6 +768,7 @@ public class HordesManager : Singleton<HordesManager>
         Quaternion rotation = ResolveSpawnRotation(coords);
         Transform parent = ResolveSpawnParent(coords);
         EnemySpawnContext context = new EnemySpawnContext(definition, position, rotation, parent, modifiers, spawnOffset);
+        context = context.WithSubWaveId(subWaveId);
         pool.Spawn(definition, context);
     }
 
@@ -587,6 +859,32 @@ public class HordesManager : Singleton<HordesManager>
             Modifiers = modifiers;
             SpawnOffset = spawnOffset;
             RemainingCount = remainingCount;
+        }
+    }
+
+    /// <summary>
+    /// Tracks runtime counters for an active sub-wave.
+    /// </summary>
+    private struct SubWaveRuntimeState
+    {
+        public int SubWaveId;
+        public int RemainingToSpawn;
+        public int AliveCount;
+        public bool SpawnRoutineCompleted;
+        public string Label;
+
+        public bool IsCleared
+        {
+            get { return SpawnRoutineCompleted && AliveCount <= 0 && RemainingToSpawn <= 0; }
+        }
+
+        public SubWaveRuntimeState(int subWaveId, string label)
+        {
+            SubWaveId = subWaveId;
+            RemainingToSpawn = 0;
+            AliveCount = 0;
+            SpawnRoutineCompleted = false;
+            Label = string.IsNullOrWhiteSpace(label) ? "Sub-Wave" : label;
         }
     }
     #endregion

@@ -157,46 +157,237 @@ public struct HordeDefinition
 }
 
 /// <summary>
-/// Configures a single wave with enemy type, spawn cadence, and start mode.
+/// Defines a macro wave that may contain multiple timed or chained sub-waves.
 /// </summary>
 [System.Serializable]
 public struct HordeWave
 {
-    [Tooltip("Enemy archetypes spawned in this wave.")]
-    [SerializeField] private List<WaveEnemyType> enemyTypes;
+    [Tooltip("Identifier used for inspectors and debug panels.")]
+    [SerializeField] private string label;
 
-    [Tooltip("Seconds between spawns for this wave.")]
-    [SerializeField] private float spawnCadenceSeconds;
+    [Tooltip("Ordered sub-waves emitted during this macro wave.")]
+    [SerializeField] private List<HordeSubWave> subWaves;
 
-    [Tooltip("Spawn nodes used for this wave. Nodes must be marked as enemy spawns in the grid.")]
-    [SerializeField] private List<Vector2Int> spawnNodes;
+    [Tooltip("Legacy enemy archetypes used when no sub-wave list is populated.")]
+    [SerializeField, HideInInspector] private List<WaveEnemyType> enemyTypes;
 
-    [Tooltip("Optional per-spawner restrictions to dictate which enemy types each node can emit. When empty, all enemy types are allowed on every spawn node defined above.")]
-    [SerializeField] private List<WaveSpawnAssignment> spawnAssignments;
+    [Tooltip("Legacy cadence used to build a fallback sub-wave when migrating scenes.")]
+    [SerializeField, HideInInspector] private float spawnCadenceSeconds;
 
-    [Tooltip("Mode controlling when the next wave begins.")]
-    [SerializeField] private WaveAdvanceMode advanceMode;
+    [Tooltip("Legacy spawn nodes used to build a fallback sub-wave when migrating scenes.")]
+    [SerializeField, HideInInspector] private List<Vector2Int> spawnNodes;
 
-    [Tooltip("Delay applied before the next wave starts. Applied after the last enemy spawn or after full clear based on the advance mode.")]
-    [SerializeField] private float advanceDelaySeconds;
+    [Tooltip("Legacy per-spawner restrictions used to build a fallback sub-wave when migrating scenes.")]
+    [SerializeField, HideInInspector] private List<WaveSpawnAssignment> spawnAssignments;
 
-    [Tooltip("Legacy single-enemy definition used for scenes created before multi-type waves existed. Leave empty when using Enemy Types.")]
+    [Tooltip("Legacy advance mode preserved for backwards compatibility when synthesizing a sub-wave.")]
+    [SerializeField, HideInInspector] private WaveAdvanceMode advanceMode;
+
+    [Tooltip("Legacy delay preserved for backwards compatibility when synthesizing a sub-wave.")]
+    [SerializeField, HideInInspector] private float advanceDelaySeconds;
+
+    [Tooltip("Legacy single-enemy definition used for scenes created before multi-type waves existed.")]
     [SerializeField, HideInInspector] private EnemyClassDefinition enemyDefinition;
 
     [SerializeField, HideInInspector] private EnemyRuntimeModifiers runtimeModifiers;
     [SerializeField, HideInInspector] private int enemyCount;
     [SerializeField, HideInInspector] private Vector3 spawnOffset;
 
-    public IReadOnlyList<WaveEnemyType> EnemyTypes { get { return enemyTypes != null ? enemyTypes : System.Array.Empty<WaveEnemyType>(); } }
-    public IReadOnlyList<WaveSpawnAssignment> SpawnAssignments { get { return spawnAssignments != null ? spawnAssignments : System.Array.Empty<WaveSpawnAssignment>(); } }
-    public IReadOnlyList<Vector2Int> SpawnNodes { get { return spawnNodes != null ? spawnNodes : System.Array.Empty<Vector2Int>(); } }
-    public float SpawnCadenceSeconds { get { return spawnCadenceSeconds; } }
-    public WaveAdvanceMode AdvanceMode { get { return advanceMode; } }
-    public float AdvanceDelaySeconds { get { return advanceDelaySeconds; } }
+    public string Label
+    {
+        get { return string.IsNullOrWhiteSpace(label) ? "Wave" : label; }
+    }
 
-    public bool HasLegacyEnemy { get { return enemyDefinition != null; } }
-    public EnemyClassDefinition LegacyEnemyDefinition { get { return enemyDefinition; } }
-    public EnemyRuntimeModifiers LegacyRuntimeModifiers { get { return runtimeModifiers; } }
-    public int LegacyEnemyCount { get { return enemyCount; } }
-    public Vector3 LegacySpawnOffset { get { return spawnOffset; } }
+    public IReadOnlyList<HordeSubWave> SubWaves
+    {
+        get
+        {
+            if (subWaves != null && subWaves.Count > 0)
+                return subWaves;
+
+            if (HasLegacyContent)
+            {
+                HordeSubWave legacy = BuildLegacySubWave();
+                if (legacy.HasContent)
+                    return new[] { legacy };
+            }
+
+            return System.Array.Empty<HordeSubWave>();
+        }
+    }
+
+    public bool HasLegacyEnemy
+    {
+        get { return enemyDefinition != null; }
+    }
+
+    public EnemyClassDefinition LegacyEnemyDefinition
+    {
+        get { return enemyDefinition; }
+    }
+
+    public EnemyRuntimeModifiers LegacyRuntimeModifiers
+    {
+        get { return runtimeModifiers; }
+    }
+
+    public int LegacyEnemyCount
+    {
+        get { return enemyCount; }
+    }
+
+    public Vector3 LegacySpawnOffset
+    {
+        get { return spawnOffset; }
+    }
+
+    private bool HasLegacyContent
+    {
+        get
+        {
+            bool hasTypes = enemyTypes != null && enemyTypes.Count > 0;
+            bool hasLegacyEnemy = enemyDefinition != null && enemyCount > 0;
+            bool hasAssignments = spawnAssignments != null && spawnAssignments.Count > 0;
+            bool hasNodes = spawnNodes != null && spawnNodes.Count > 0;
+            return hasTypes || hasLegacyEnemy || hasAssignments || hasNodes;
+        }
+    }
+
+    private HordeSubWave BuildLegacySubWave()
+    {
+        List<WaveEnemyType> legacyTypes = enemyTypes != null ? new List<WaveEnemyType>(enemyTypes) : new List<WaveEnemyType>();
+        List<Vector2Int> legacyNodes = spawnNodes != null ? new List<Vector2Int>(spawnNodes) : new List<Vector2Int>();
+        List<WaveSpawnAssignment> legacyAssignments = spawnAssignments != null ? new List<WaveSpawnAssignment>(spawnAssignments) : new List<WaveSpawnAssignment>();
+        HordeSubWave legacy = new HordeSubWave(label, legacyTypes, legacyNodes, legacyAssignments, spawnCadenceSeconds, ConvertLegacyStartMode(advanceMode), advanceDelaySeconds, enemyDefinition, runtimeModifiers, enemyCount, spawnOffset);
+        return legacy;
+    }
+
+    private SubWaveStartMode ConvertLegacyStartMode(WaveAdvanceMode legacyMode)
+    {
+        if (legacyMode == WaveAdvanceMode.FixedInterval)
+            return SubWaveStartMode.DelayFromWaveStart;
+
+        return SubWaveStartMode.AfterPreviousClear;
+    }
+}
+
+/// <summary>
+/// Configures a sub-wave inside a macro wave with independent cadence and start conditions.
+/// </summary>
+[System.Serializable]
+public struct HordeSubWave
+{
+    [Tooltip("Identifier used for debug tooling and inspectors.")]
+    [SerializeField] private string label;
+
+    [Tooltip("Enemy archetypes spawned in this sub-wave.")]
+    [SerializeField] private List<WaveEnemyType> enemyTypes;
+
+    [Tooltip("Seconds between spawns for this sub-wave.")]
+    [SerializeField] private float spawnCadenceSeconds;
+
+    [Tooltip("Spawn nodes used for this sub-wave. Nodes must be marked as enemy spawns in the grid.")]
+    [SerializeField] private List<Vector2Int> spawnNodes;
+
+    [Tooltip("Optional per-spawner restrictions to dictate which enemy types each node can emit. When empty, all enemy types are allowed on every spawn node defined above.")]
+    [SerializeField] private List<WaveSpawnAssignment> spawnAssignments;
+
+    [Tooltip("Start condition controlling when this sub-wave begins emitting enemies.")]
+    [SerializeField] private SubWaveStartMode startMode;
+
+    [Tooltip("Delay before this sub-wave starts. Interpreted from macro wave start or from previous sub-wave clear depending on the start mode.")]
+    [SerializeField] private float startDelaySeconds;
+
+    [Tooltip("Legacy single-enemy definition used for scenes created before multi-type waves existed.")]
+    [SerializeField, HideInInspector] private EnemyClassDefinition enemyDefinition;
+
+    [SerializeField, HideInInspector] private EnemyRuntimeModifiers runtimeModifiers;
+    [SerializeField, HideInInspector] private int enemyCount;
+    [SerializeField, HideInInspector] private Vector3 spawnOffset;
+
+    public string Label
+    {
+        get { return string.IsNullOrWhiteSpace(label) ? "Sub-Wave" : label; }
+    }
+
+    public IReadOnlyList<WaveEnemyType> EnemyTypes
+    {
+        get { return enemyTypes != null ? enemyTypes : System.Array.Empty<WaveEnemyType>(); }
+    }
+
+    public IReadOnlyList<WaveSpawnAssignment> SpawnAssignments
+    {
+        get { return spawnAssignments != null ? spawnAssignments : System.Array.Empty<WaveSpawnAssignment>(); }
+    }
+
+    public IReadOnlyList<Vector2Int> SpawnNodes
+    {
+        get { return spawnNodes != null ? spawnNodes : System.Array.Empty<Vector2Int>(); }
+    }
+
+    public float SpawnCadenceSeconds
+    {
+        get { return spawnCadenceSeconds; }
+    }
+
+    public SubWaveStartMode StartMode
+    {
+        get { return startMode; }
+    }
+
+    public float StartDelaySeconds
+    {
+        get { return startDelaySeconds; }
+    }
+
+    public bool HasLegacyEnemy
+    {
+        get { return enemyDefinition != null; }
+    }
+
+    public EnemyClassDefinition LegacyEnemyDefinition
+    {
+        get { return enemyDefinition; }
+    }
+
+    public EnemyRuntimeModifiers LegacyRuntimeModifiers
+    {
+        get { return runtimeModifiers; }
+    }
+
+    public int LegacyEnemyCount
+    {
+        get { return enemyCount; }
+    }
+
+    public Vector3 LegacySpawnOffset
+    {
+        get { return spawnOffset; }
+    }
+
+    public bool HasContent
+    {
+        get
+        {
+            bool hasTypes = enemyTypes != null && enemyTypes.Count > 0;
+            bool hasLegacy = enemyDefinition != null && enemyCount > 0;
+            bool hasNodes = spawnNodes != null && spawnNodes.Count > 0;
+            return hasTypes || hasLegacy || hasNodes;
+        }
+    }
+
+    public HordeSubWave(string label, List<WaveEnemyType> enemyTypes, List<Vector2Int> spawnNodes, List<WaveSpawnAssignment> spawnAssignments, float spawnCadenceSeconds, SubWaveStartMode startMode, float startDelaySeconds, EnemyClassDefinition legacyDefinition, EnemyRuntimeModifiers legacyModifiers, int legacyCount, Vector3 legacyOffset)
+    {
+        this.label = label;
+        this.enemyTypes = enemyTypes;
+        this.spawnNodes = spawnNodes;
+        this.spawnAssignments = spawnAssignments;
+        this.spawnCadenceSeconds = spawnCadenceSeconds;
+        this.startMode = startMode;
+        this.startDelaySeconds = startDelaySeconds;
+        enemyDefinition = legacyDefinition;
+        runtimeModifiers = legacyModifiers;
+        enemyCount = legacyCount;
+        spawnOffset = legacyOffset;
+    }
 }

@@ -37,3 +37,12 @@ public enum WaveAdvanceMode
     FixedInterval,
     AfterClear
 }
+
+/// <summary>
+/// Defines when a sub-wave begins relative to its macro wave.
+/// </summary>
+public enum SubWaveStartMode
+{
+    DelayFromWaveStart,
+    AfterPreviousClear
+}

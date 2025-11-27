@@ -67294,7 +67294,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
       propertyPath: hordes.Array.data[0].waves.Array.size
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
       propertyPath: hordes.Array.data[0].waves.Array.data[0].enemyCount
@@ -67457,6 +67457,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: 6d791dbc9708eee4e8ef960e889d3f71, type: 2}
     - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
+      propertyPath: hordes.Array.data[0].waves.Array.data[1].enemyTypes.Array.data[0].enemyDefinition
+      value: 
+      objectReference: {fileID: 11400000, guid: 6d791dbc9708eee4e8ef960e889d3f71, type: 2}
+    - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
       propertyPath: hordes.Array.data[0].waves.Array.data[0].spawnAssignments.Array.data[0].spawnNode.x
       value: 9
       objectReference: {fileID: 0}
@@ -67474,11 +67478,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
       propertyPath: hordes.Array.data[0].waves.Array.data[1].spawnAssignments.Array.data[0].spawnNode.x
-      value: 9
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
       propertyPath: hordes.Array.data[0].waves.Array.data[1].spawnAssignments.Array.data[0].spawnNode.y
-      value: 31
+      value: 17
       objectReference: {fileID: 0}
     - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
       propertyPath: hordes.Array.data[0].waves.Array.data[1].spawnAssignments.Array.data[1].spawnNode.x

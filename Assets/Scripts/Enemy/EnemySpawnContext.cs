@@ -34,6 +34,9 @@ namespace Enemy
         [Tooltip("Offset applied to the resolved spawn position.")]
         [SerializeField] private Vector3 spawnOffset;
 
+        [Tooltip("Identifier of the sub-wave that originated this spawn. Managed by the horde system.")]
+        [SerializeField] private int subWaveId;
+
         #endregion
 
         #region Properties
@@ -68,6 +71,11 @@ namespace Enemy
             get { return spawnOffset; }
         }
 
+        public int SubWaveId
+        {
+            get { return subWaveId; }
+        }
+
         #endregion
         #endregion
 
@@ -82,6 +90,7 @@ namespace Enemy
             this.parent = parent;
             this.runtimeModifiers = runtimeModifiers;
             this.spawnOffset = spawnOffset;
+            subWaveId = -1;
         }
 
         public EnemySpawnContext(EnemyClassDefinition definition, Vector3 position, Quaternion rotation, Transform parent) : this(definition, position, rotation, parent, EnemyRuntimeModifiers.Identity, Vector3.zero)
@@ -121,6 +130,13 @@ namespace Enemy
         {
             EnemySpawnContext updated = this;
             updated.spawnOffset = offset;
+            return updated;
+        }
+
+        public EnemySpawnContext WithSubWaveId(int newSubWaveId)
+        {
+            EnemySpawnContext updated = this;
+            updated.subWaveId = newSubWaveId;
             return updated;
         }
 
