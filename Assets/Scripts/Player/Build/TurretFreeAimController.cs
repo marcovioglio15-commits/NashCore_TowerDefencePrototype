@@ -1024,7 +1024,15 @@ namespace Player.Build
         private Vector3 ResolveFireForward()
         {
             if (targetCamera != null)
-                return targetCamera.transform.forward;
+            {
+                Vector3 cameraForward = targetCamera.transform.forward;
+                Vector3 planarForward = new Vector3(cameraForward.x, 0f, cameraForward.z);
+                if (planarForward.sqrMagnitude > Mathf.Epsilon)
+                    return planarForward.normalized;
+
+                if (cameraForward.sqrMagnitude > Mathf.Epsilon)
+                    return cameraForward.normalized;
+            }
 
             if (activeTurret == null)
                 return Vector3.forward;
@@ -1118,11 +1126,11 @@ namespace Player.Build
         /// </summary>
         private Transform ResolveFreeAimSpawnOrigin()
         {
-            if (targetCamera != null)
-                return targetCamera.transform;
-
             if (activeTurret != null && activeTurret.Muzzle != null)
                 return activeTurret.Muzzle;
+
+            if (targetCamera != null)
+                return targetCamera.transform;
 
             return activeTurret != null ? activeTurret.transform : null;
         }

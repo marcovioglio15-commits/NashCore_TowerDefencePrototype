@@ -15,7 +15,7 @@ MonoBehaviour:
   key: TC_Gatling
   displayName: TC_Gatling
   description: Tower Class - Gatling glorb
-  icon: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
+  icon: {fileID: 21300000, guid: bf0542b391aa64b4fa624fd6d606cff5, type: 3}
   turretPrefab: {fileID: 3500021065220146295, guid: c89828e3c044dcd4085e3c0175c0d8bd, type: 3}
   turretPool: {fileID: 11400000, guid: c57960a14253130449463706e7ce18b1, type: 2}
   projectile: {fileID: 11400000, guid: a01834a1dff6b8a4da0add0b6aa72f84, type: 2}
