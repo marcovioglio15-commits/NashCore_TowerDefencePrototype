@@ -17,10 +17,12 @@ MonoBehaviour:
   - Assets/2D/Sprites
   - Assets/2D/UI
   - Assets/2D/UI/Fonts
+  - Assets/2D/UI/Icons
   folderColors:
   - {r: 0.8415094, g: 0.7168664, b: 0, a: 0}
   - {r: 0.8415094, g: 0.7168664, b: 0, a: 0}
   - {r: 0.8415094, g: 0.7168664, b: 0, a: 0}
   - {r: 0.8415094, g: 0.7168664, b: 0, a: 0}
-  folderApplyModes: 01000000010000000100000001000000
+  - {r: 0.8415094, g: 0.7168664, b: 0, a: 0}
+  folderApplyModes: 0100000001000000010000000100000001000000
   autoInheritColors: 1
