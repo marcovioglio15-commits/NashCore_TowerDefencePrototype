@@ -48,6 +48,9 @@ MonoBehaviour:
   defaultClass: {fileID: 11400000, guid: a01834a1dff6b8a4da0add0b6aa72f84, type: 2}
   drawTravelGizmos: 1
   gizmoColor: {r: 1, g: 0.5, b: 0.1, a: 0.45}
+  EnemyMask:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1 &4872012832352477279
 GameObject:
   m_ObjectHideFlags: 0
