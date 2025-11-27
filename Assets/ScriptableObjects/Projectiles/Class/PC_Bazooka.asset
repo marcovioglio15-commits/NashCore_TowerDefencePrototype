@@ -25,7 +25,7 @@ MonoBehaviour:
   maxPiercedTargets: 5
   lifetimeSeconds: 5
   maxDistance: 20
-  splashRadius: 5
+  splashRadius: 2
   statusEffect: 0
   statusChance: 1
   statusDurationSeconds: 1.75

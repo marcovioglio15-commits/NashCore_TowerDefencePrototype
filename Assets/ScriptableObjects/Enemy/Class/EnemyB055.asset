@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: B055
   description: John Boss.
   icon: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  enemyPrefab: {fileID: 5124621794192595975, guid: bac81078257e040488ec4d0a90f8b24e, type: 3}
+  enemyPrefab: {fileID: 5124621794192595975, guid: 04c6aa7761f8f574da1440056b26374c, type: 3}
   enemyPool: {fileID: 11400000, guid: b7f59d6c45b47b948ba16d33ecf00622, type: 2}
   durability:
     maxHealth: 1200
