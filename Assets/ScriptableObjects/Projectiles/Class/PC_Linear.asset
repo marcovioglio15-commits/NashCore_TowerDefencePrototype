@@ -22,7 +22,7 @@ MonoBehaviour:
   pierceFalloffRatio: 0.2
   damageProbeRadius: 0.25
   speed: 5
-  maxPiercedTargets: 1
+  maxPiercedTargets: 0
   lifetimeSeconds: 5
   maxDistance: 25
   splashRadius: 0

@@ -1026,7 +1026,7 @@ namespace Player.Build
             if (targetCamera != null)
             {
                 Vector3 cameraForward = targetCamera.transform.forward;
-                Vector3 planarForward = new Vector3(cameraForward.x, 0f, cameraForward.z);
+                Vector3 planarForward = new Vector3(cameraForward.x, cameraForward.y, cameraForward.z);
                 if (planarForward.sqrMagnitude > Mathf.Epsilon)
                     return planarForward.normalized;
 
