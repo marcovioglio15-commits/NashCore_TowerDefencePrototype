@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5652278225428952820}
   - component: {fileID: 7471823979336599820}
   m_Layer: 7
-  m_Name: Projectile_Bazooka
+  m_Name: Projectile_BazookaFrost
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -47,7 +47,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1a11cfa0ab3ce044b10efb9bdc162e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  defaultClass: {fileID: 11400000, guid: 43d542c2013a5e848bbdc45fbae67931, type: 2}
+  defaultClass: {fileID: 11400000, guid: c92a44fb377fcee409a7de1733de080f, type: 2}
   drawTravelGizmos: 1
   gizmoColor: {r: 1, g: 0.5, b: 0.1, a: 0.45}
   EnemyMask:
@@ -120,7 +120,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f5e766c5dc0407e4d9844a44c91c0392, type: 2}
+  - {fileID: 2100000, guid: 782c5b1112b531640a8a5251c9a19c0e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 25bc8ff18fe01f241b24bd8f293afc6d, type: 3}
-  m_Name: TP_ConsecutiveShooter
+  m_Name: TP_BazookaFreeze
   m_EditorClassIdentifier: 
-  prefab: {fileID: 3500021065220146295, guid: c89828e3c044dcd4085e3c0175c0d8bd, type: 3}
-  fallbackDefinition: {fileID: 11400000, guid: 2a6e837bf419f52429ac8c5391b28608, type: 2}
+  prefab: {fileID: 2543766984240034746, guid: 9b1f4c0a2715c5242b9b97a32f9c0f8a, type: 3}
+  fallbackDefinition: {fileID: 11400000, guid: 2151482f2d606c346a771b062b779d54, type: 2}
   warmupCount: 4

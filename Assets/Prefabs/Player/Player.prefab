@@ -53,8 +53,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   buildableTurrets:
   - {fileID: 11400000, guid: 2a6e837bf419f52429ac8c5391b28608, type: 2}
-  - {fileID: 11400000, guid: 2a6e837bf419f52429ac8c5391b28608, type: 2}
+  - {fileID: 11400000, guid: ed166be292ce1724f8e6f087cb5f2cf1, type: 2}
   - {fileID: 11400000, guid: 736b690d20a55834c99eacb338972cd5, type: 2}
+  - {fileID: 11400000, guid: 2151482f2d606c346a771b062b779d54, type: 2}
   worldCamera: {fileID: 0}
   snapRadius: 1.5
   snapCellExpansion: 1

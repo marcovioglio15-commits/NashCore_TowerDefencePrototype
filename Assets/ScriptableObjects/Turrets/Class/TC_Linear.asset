@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8bf5d7b23271204f84f3adf1da36685, type: 3}
-  m_Name: TC_ConsecutiveShooter
+  m_Name: TC_Linear
   m_EditorClassIdentifier: 
   key: TC_ConsecutiveShooter
   displayName: TURRET

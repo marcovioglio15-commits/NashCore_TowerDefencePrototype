@@ -16,10 +16,10 @@ MonoBehaviour:
   displayName: FREEZOOKA
   description: Tower Class - Cone Shooter
   icon: {fileID: 21300000, guid: c990abea73c50d945910fa6339219784, type: 3}
-  turretPrefab: {fileID: 2543766984240034746, guid: 5637a2392a57ee54a9a06a2167152768, type: 3}
-  turretPool: {fileID: 11400000, guid: 3e16b0dd0d14e1840af44ab735c2c803, type: 2}
+  turretPrefab: {fileID: 2543766984240034746, guid: 9b1f4c0a2715c5242b9b97a32f9c0f8a, type: 3}
+  turretPool: {fileID: 11400000, guid: ac553baa6ac2e794c9e70ece93acbbc5, type: 2}
   projectile: {fileID: 11400000, guid: c92a44fb377fcee409a7de1733de080f, type: 2}
-  projectilePool: {fileID: 11400000, guid: 75a1cd4eec4de3e4fb560729aaf40c31, type: 2}
+  projectilePool: {fileID: 11400000, guid: f7f1ae5690b8a824b86ebab25a3d4a6b, type: 2}
   durability:
     health: 150
     armor: 10
