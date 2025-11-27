@@ -11067,9 +11067,9 @@ Camera:
   m_NormalizedViewPortRect:
     serializedVersion: 2
     x: 0
-    y: 0
+    y: 0.06756756
     width: 1
-    height: 1
+    height: 0.8648649
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
@@ -29892,9 +29892,9 @@ Camera:
   m_NormalizedViewPortRect:
     serializedVersion: 2
     x: 0
-    y: 0
+    y: 0.06756756
     width: 1
-    height: 1
+    height: 0.8648649
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
@@ -68488,11 +68488,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
       propertyPath: hordes.Array.data[0].waves.Array.data[1].subWaves.Array.data[0].spawnAssignments.Array.data[0].spawnNode.x
-      value: 1
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
       propertyPath: hordes.Array.data[0].waves.Array.data[1].subWaves.Array.data[0].spawnAssignments.Array.data[0].spawnNode.y
-      value: 17
+      value: 31
       objectReference: {fileID: 0}
     - target: {fileID: 7541136066022165825, guid: 8b0eed981a09dab47b752a432b7d3ee2, type: 3}
       propertyPath: hordes.Array.data[0].waves.Array.data[1].subWaves.Array.data[1].spawnAssignments.Array.data[0].spawnNode.x
@@ -79658,7 +79658,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4590330422043113948, guid: f31f1895dab9afe4d93714ba36ce6b54, type: 3}
       propertyPath: startingScrap
-      value: 100
+      value: 300
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
