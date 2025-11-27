@@ -30,7 +30,7 @@ Transform:
   m_GameObject: {fileID: 2295266806820940772}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.09494, y: 0.42734, z: 0.4909}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -111,10 +111,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5000001
+  m_Radius: 0.5
   m_Height: 2
   m_Direction: 1
-  m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
+  m_Center: {x: 0, y: 1, z: 0}
 --- !u!114 &3500021065220146295
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157,6 +157,8 @@ MonoBehaviour:
   fallbackCadenceSeconds: 0.35
   fireArcDegrees: 360
   fireLockCheckInterval: 0.2
+  autoFireAlignmentRoots: []
+  autoAlignmentLerpSpeed: 240
   drawDebugGizmos: 1
 --- !u!1 &2693720823322707903
 GameObject:
@@ -254,15 +256,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 724555af376285d439af5e46946767c7, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.17987624
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 724555af376285d439af5e46946767c7, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.81307244
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 724555af376285d439af5e46946767c7, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.19773361
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 724555af376285d439af5e46946767c7, type: 3}
       propertyPath: m_LocalRotation.w

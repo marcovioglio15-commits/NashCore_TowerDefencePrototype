@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TC_Gatling
   m_EditorClassIdentifier: 
   key: TC_Gatling
-  displayName: TC_Gatling
+  displayName: GATLING
   description: Tower Class - Gatling glorb
   icon: {fileID: 21300000, guid: bf0542b391aa64b4fa624fd6d606cff5, type: 3}
   turretPrefab: {fileID: 3500021065220146295, guid: c89828e3c044dcd4085e3c0175c0d8bd, type: 3}
@@ -57,7 +57,7 @@ MonoBehaviour:
     clearance: 0.08
     heightOffset: 0.15
     alignWithGrid: 1
-    spawnOffset: {x: 0, y: 1, z: 0}
+    spawnOffset: {x: 0, y: 0, z: 0}
   freeAimMultipliers:
     health: 1
     armor: 1

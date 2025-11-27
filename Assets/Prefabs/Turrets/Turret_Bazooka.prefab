@@ -56,10 +56,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5000001
+  m_Radius: 0.5
   m_Height: 2
   m_Direction: 1
-  m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
+  m_Center: {x: 0, y: 1, z: 0}
 --- !u!114 &2543766984240034746
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -112,6 +112,7 @@ MonoBehaviour:
   fireLockCheckInterval: 0.2
   autoFireAlignmentRoots:
   - {fileID: 6521521769185566705}
+  autoAlignmentLerpSpeed: 240
   drawDebugGizmos: 1
 --- !u!1 &8227007290419129183
 GameObject:
@@ -158,7 +159,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 96a57ec3ca014ea409c6af8cfdc7aea3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.714
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 96a57ec3ca014ea409c6af8cfdc7aea3, type: 3}
       propertyPath: m_LocalPosition.z
