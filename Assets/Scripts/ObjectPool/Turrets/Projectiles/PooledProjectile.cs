@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Enemy;
 using Utils.Combat;
@@ -18,6 +19,8 @@ namespace Scriptables.Turrets
         [SerializeField] private bool drawTravelGizmos = true;
         [Tooltip("Color used for travel gizmos while the projectile is active.")] 
         [SerializeField] private Color gizmoColor = new Color(1f, 0.5f, 0.1f, 0.45f);
+        [Tooltip("Layer mask used to distinguish enemies")]
+        [SerializeField] private LayerMask EnemyMask;
         #endregion
 
         #region Runtime
@@ -34,7 +37,8 @@ namespace Scriptables.Turrets
         private Transform sourceTransform;
         private int sourceLayer;
         private readonly RaycastHit[] hitBuffer = new RaycastHit[8];
-        private readonly Collider[] damageBuffer = new Collider[12];
+        private readonly Collider[] damageBuffer = new Collider[32];
+        private readonly HashSet<int> areaRootBuffer = new HashSet<int>(32);
         private int appliedHits;
         private float activeSplashRadius;
         #endregion
@@ -257,15 +261,38 @@ namespace Scriptables.Turrets
         /// </summary>
         private void ApplyDamageAtPoint(Collider primaryCollider, Vector3 impactPoint)
         {
-            float areaRadius = Mathf.Max(activeDefinition.DamageProbeRadius, activeSplashRadius);
-            ApplyDamageToCollider(primaryCollider, impactPoint);
-            int found = Physics.OverlapSphereNonAlloc(impactPoint, areaRadius, damageBuffer, ~0, QueryTriggerInteraction.Collide);
+            if (!HasDefinition)
+                return;
+
+            float areaRadius = Mathf.Max(activeSplashRadius, activeDefinition.SplashRadius);
+            if (areaRadius <= 0f)
+            {
+                if (primaryCollider != null)
+                    ApplyDamageToCollider(primaryCollider, impactPoint);
+
+                return;
+            }
+
+            areaRootBuffer.Clear();
+            if (primaryCollider != null && primaryCollider.gameObject.activeInHierarchy)
+            {
+                areaRootBuffer.Add(primaryCollider.transform.root.GetInstanceID());
+                ApplyDamageToCollider(primaryCollider, impactPoint);
+            }
+
+            int found = Physics.OverlapSphereNonAlloc(impactPoint, areaRadius, damageBuffer, EnemyMask, QueryTriggerInteraction.Collide);
+            //Debug.Log(found.ToString());
             for (int i = 0; i < found; i++)
             {
                 Collider candidate = damageBuffer[i];
-                if (candidate == null || candidate == primaryCollider || !candidate.gameObject.activeInHierarchy)
+                if (candidate == null || !candidate.gameObject.activeInHierarchy)
                     continue;
 
+                int rootId = candidate.transform.root.GetInstanceID();
+                if (areaRootBuffer.Contains(rootId))
+                    continue;
+
+                areaRootBuffer.Add(rootId);
                 ApplyDamageToCollider(candidate, impactPoint);
             }
         }
@@ -284,6 +311,7 @@ namespace Scriptables.Turrets
 
             float resolvedDamage = ResolveDamage();
             AppliedDamagePayload payload = new AppliedDamagePayload(resolvedDamage, this);
+            //Debug.Log(damagable.ToString());
             damagable.ApplyDamage(payload, impactPoint);
             TryApplyStatusEffect(targetCollider);
             appliedHits++;
@@ -364,7 +392,7 @@ namespace Scriptables.Turrets
         private void ConfigureImpactProfile(ProjectileSpawnContext context)
         {
             float overrideRadius = context.OverrideSplashRadius;
-            activeSplashRadius = overrideRadius > 0f ? overrideRadius : activeDefinition.SplashRadius;
+            activeSplashRadius = Mathf.Max(overrideRadius, activeDefinition.SplashRadius);
         }
 
         /// <summary>
