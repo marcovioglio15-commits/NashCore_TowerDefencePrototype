@@ -47,16 +47,16 @@ MonoBehaviour:
   <DontDestroyOnLoad>k__BackingField: 0
   buildablesInventory: {fileID: 0}
   buildablesContainer: {fileID: 0}
-  iconPrefab: {fileID: 0}
+  iconPrefab: {fileID: 5969270744618485342, guid: 0c889ef783cd9e64991a773a30d921e1, type: 3}
   uiCanvas: {fileID: 0}
   dragLayer: {fileID: 0}
   dragPreviewImage: {fileID: 0}
-  validDragColor: {r: 1, g: 1, b: 1, a: 1}
-  invalidDragColor: {r: 1, g: 0.45, b: 0.45, a: 0.95}
+  validDragColor: {r: 0.23529412, g: 0.33333334, b: 0.5882353, a: 1}
+  invalidDragColor: {r: 1, g: 0.19607843, b: 0.19607843, a: 1}
   worldSpaceCamera: {fileID: 0}
   holdIndicatorLayer: {fileID: 0}
-  holdIndicatorPrefab: {fileID: 0}
-  holdIndicatorHeightOffset: 1.75
+  holdIndicatorPrefab: {fileID: 5371375424025137156, guid: 47e4aefdfb6cf884796e3f7f979e5bca, type: 3}
+  holdIndicatorHeightOffset: 0
   buildBarRoot: {fileID: 0}
   freeAimRoot: {fileID: 0}
   freeAimExitHoldImage: {fileID: 0}
@@ -91,6 +91,7 @@ MonoBehaviour:
   phaseBannerAlwaysVisible: 0
   buildingPhaseLabel: Building Phase
   combatPhaseLabel: Defence Phase
+  playerHealthFillImage: {fileID: 0}
   ScrapLabel: {fileID: 0}
   ScrapInsufficientColor: {r: 0.9, g: 0.25, b: 0.25, a: 1}
   ScrapInsufficientPulseSeconds: 0.4
