@@ -363,19 +363,11 @@ namespace Player.Build
             if (freeAimActive && activeTurret != null)
                 activeTurret.SetFreeAimState(false);
 
+            ResetFreeAimRotationState();
             RestoreAutoController();
             freeAimActive = false;
             activeTurret = null;
             fireCooldownTimer = 0f;
-            currentYawOffset = 0f;
-            currentPitchOffset = 0f;
-            targetYawOffset = 0f;
-            targetPitchOffset = 0f;
-            yawDampVelocity = 0f;
-            pitchDampVelocity = 0f;
-            cameraOffsetsDirty = false;
-            pendingYawInput = 0f;
-            pendingPitchInput = 0f;
             uiArmed = false;
             reticleHoldActive = false;
             StartCameraReturn();
@@ -402,13 +394,7 @@ namespace Player.Build
             freeAimActive = false;
             fireCooldownTimer = 0f;
             reticleHoldActive = false;
-            pendingYawInput = 0f;
-            pendingPitchInput = 0f;
-            targetYawOffset = 0f;
-            targetPitchOffset = 0f;
-            yawDampVelocity = 0f;
-            pitchDampVelocity = 0f;
-            cameraOffsetsDirty = false;
+            ResetFreeAimRotationState();
             HideAllAuxiliaryRenderers();
             ShowPossessionRenderers();
             cachedTurretRenderers = null;
@@ -1149,6 +1135,23 @@ namespace Player.Build
 
             clampDegrees = Mathf.Max(0f, clampDegrees);
             return clampDegrees > 0f ? clampDegrees * 0.5f : float.PositiveInfinity;
+        }
+
+        /// <summary>
+        /// Clears accumulated rotation state and restores rotation followers to their base pose.
+        /// </summary>
+        private void ResetFreeAimRotationState()
+        {
+            currentYawOffset = 0f;
+            currentPitchOffset = 0f;
+            targetYawOffset = 0f;
+            targetPitchOffset = 0f;
+            yawDampVelocity = 0f;
+            pitchDampVelocity = 0f;
+            pendingYawInput = 0f;
+            pendingPitchInput = 0f;
+            cameraOffsetsDirty = false;
+            ApplyCameraOffsets();
         }
 
         /// <summary>
