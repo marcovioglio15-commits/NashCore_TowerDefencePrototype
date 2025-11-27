@@ -56,8 +56,8 @@ MonoBehaviour:
     footprintRadius: 0.45
     clearance: 0.08
     heightOffset: 0.15
-    alignWithGrid: 0
-    spawnOffset: {x: 0, y: 0, z: 0}
+    alignWithGrid: 1
+    spawnOffset: {x: 0, y: 1, z: 0}
   freeAimMultipliers:
     health: 1
     armor: 1

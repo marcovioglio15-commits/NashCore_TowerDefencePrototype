@@ -25,7 +25,7 @@ MonoBehaviour:
   mobility:
     movementSpeed: 100
   offense:
-    shieldDamage: 15
+    shieldDamage: 5
   rewards:
     scrapValue: 5
   contact:
