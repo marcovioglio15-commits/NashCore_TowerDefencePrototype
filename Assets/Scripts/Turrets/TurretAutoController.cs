@@ -23,6 +23,11 @@ namespace Scriptables.Turrets
         [SerializeField] private float fireArcDegrees = 12f;
         [Tooltip("Interval in seconds used to verify whether enemies remain within the fire area while locked.")]
         [SerializeField] private float fireLockCheckInterval = 0.2f;
+        [Tooltip("Transforms aligned to the current automatic fire direction.")]
+        [Header("Alignment")]
+        [SerializeField] private Transform[] autoFireAlignmentRoots;
+        [Tooltip("Degrees per second used to smoothly align automatic fire transforms.")]
+        [SerializeField] private float autoAlignmentLerpSpeed = 240f;
         [Tooltip("Draws targeting debug gizmos when the turret is selected.")]
         [SerializeField] private bool drawDebugGizmos = true;
         #endregion
@@ -34,6 +39,7 @@ namespace Scriptables.Turrets
         private float fireTimer;
         private Coroutine burstRoutine;
         private Vector3 lastAimPoint;
+        private Vector3 lastAlignmentDirection;
         private bool fireLockActive;
         private float fireLockTimer;
         private bool phaseAutoEnabled = true;
@@ -63,6 +69,7 @@ namespace Scriptables.Turrets
             fireTimer = 0f;
             activeTarget = null;
             lastAimPoint = Vector3.zero;
+            lastAlignmentDirection = Vector3.zero;
             fireLockActive = false;
             fireLockTimer = 0f;
             EventsManager.GamePhaseChanged += HandleGamePhaseChanged;
@@ -79,6 +86,7 @@ namespace Scriptables.Turrets
 
             burstRoutine = null;
             activeTarget = null;
+            lastAlignmentDirection = Vector3.zero;
             EventsManager.GamePhaseChanged -= HandleGamePhaseChanged;
         }
 
@@ -136,6 +144,7 @@ namespace Scriptables.Turrets
                 pooledTurret.AimTowards(direction, deltaTime);
             }
 
+            UpdateAlignment(direction, deltaTime);
             lastAimPoint = pooledTurret.transform.position + direction;
 
             fireTimer -= deltaTime;
@@ -396,6 +405,42 @@ namespace Scriptables.Turrets
             float maxCos = Mathf.Cos(maxAngle * Mathf.Deg2Rad * 0.5f);
             float dot = Vector3.Dot(forwardHorizontal.normalized, directionHorizontal.normalized);
             return dot >= maxCos;
+        }
+
+        /// <summary>
+        /// Aligns optional transforms to the current automatic firing direction.
+        /// </summary>
+        private void UpdateAlignment(Vector3 direction, float deltaTime)
+        {
+            if (autoFireAlignmentRoots == null || autoFireAlignmentRoots.Length == 0)
+                return;
+
+            if (direction.sqrMagnitude <= Mathf.Epsilon)
+                return;
+
+            Vector3 normalized = direction.normalized;
+            Transform upSource = pooledTurret != null && pooledTurret.YawPivot != null ? pooledTurret.YawPivot : pooledTurret != null ? pooledTurret.transform : null;
+            Vector3 up = upSource != null ? upSource.up : Vector3.up;
+            Quaternion rotation = Quaternion.LookRotation(normalized, up);
+            float maxDegrees = Mathf.Max(0f, autoAlignmentLerpSpeed) * Mathf.Max(0f, deltaTime);
+            bool applyLerp = maxDegrees > 0f;
+
+            for (int i = 0; i < autoFireAlignmentRoots.Length; i++)
+            {
+                Transform root = autoFireAlignmentRoots[i];
+                if (root == null)
+                    continue;
+
+                if (applyLerp)
+                {
+                    root.rotation = Quaternion.RotateTowards(root.rotation, rotation, maxDegrees);
+                    continue;
+                }
+
+                root.rotation = rotation;
+            }
+
+            lastAlignmentDirection = normalized;
         }
         #endregion
 

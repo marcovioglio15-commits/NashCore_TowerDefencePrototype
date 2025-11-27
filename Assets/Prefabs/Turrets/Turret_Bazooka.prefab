@@ -110,6 +110,8 @@ MonoBehaviour:
   fallbackCadenceSeconds: 0.35
   fireArcDegrees: 360
   fireLockCheckInterval: 0.2
+  autoFireAlignmentRoots:
+  - {fileID: 6521521769185566705}
   drawDebugGizmos: 1
 --- !u!1 &8227007290419129183
 GameObject:
