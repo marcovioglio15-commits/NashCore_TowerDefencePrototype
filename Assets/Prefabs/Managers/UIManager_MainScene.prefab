@@ -82,6 +82,7 @@ MonoBehaviour:
   levelSceneOrder:
   - TS_Level1
   - TS_Level2
+  - TS_Level3
   phaseToggleButton: {fileID: 0}
   phaseBannerCanvasGroup: {fileID: 0}
   phaseBannerLabel: {fileID: 0}
