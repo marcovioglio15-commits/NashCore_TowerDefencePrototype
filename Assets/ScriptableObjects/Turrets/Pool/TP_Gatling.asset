@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c33a02b050d10994b9f93fc2cebf2897, type: 3}
-  m_Name: PP_Cone
+  m_Script: {fileID: 11500000, guid: 25bc8ff18fe01f241b24bd8f293afc6d, type: 3}
+  m_Name: TP_Gatling
   m_EditorClassIdentifier: 
-  prefab: {fileID: 7471823979336599820, guid: c6592871d6c722445b6d0ab0838bf047, type: 3}
-  fallbackDefinition: {fileID: 11400000, guid: 43d542c2013a5e848bbdc45fbae67931, type: 2}
-  warmupCount: 16
+  prefab: {fileID: 3500021065220146295, guid: c3c8aaa4e6bc51a469c33846e571dd46, type: 3}
+  fallbackDefinition: {fileID: 11400000, guid: ed166be292ce1724f8e6f087cb5f2cf1, type: 2}
+  warmupCount: 4

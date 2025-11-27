@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 25bc8ff18fe01f241b24bd8f293afc6d, type: 3}
-  m_Name: TP_ConeShooter
+  m_Name: TP_Linear
   m_EditorClassIdentifier: 
-  prefab: {fileID: 2543766984240034746, guid: 5637a2392a57ee54a9a06a2167152768, type: 3}
-  fallbackDefinition: {fileID: 11400000, guid: 736b690d20a55834c99eacb338972cd5, type: 2}
+  prefab: {fileID: 3500021065220146295, guid: c89828e3c044dcd4085e3c0175c0d8bd, type: 3}
+  fallbackDefinition: {fileID: 11400000, guid: 2a6e837bf419f52429ac8c5391b28608, type: 2}
   warmupCount: 4

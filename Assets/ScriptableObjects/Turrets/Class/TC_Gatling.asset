@@ -16,10 +16,10 @@ MonoBehaviour:
   displayName: GATLING
   description: Tower Class - Gatling glorb
   icon: {fileID: 21300000, guid: bf0542b391aa64b4fa624fd6d606cff5, type: 3}
-  turretPrefab: {fileID: 3500021065220146295, guid: c89828e3c044dcd4085e3c0175c0d8bd, type: 3}
-  turretPool: {fileID: 11400000, guid: c57960a14253130449463706e7ce18b1, type: 2}
+  turretPrefab: {fileID: 3500021065220146295, guid: c3c8aaa4e6bc51a469c33846e571dd46, type: 3}
+  turretPool: {fileID: 11400000, guid: 1dae05df753f99a4a85dae7b15f8b14c, type: 2}
   projectile: {fileID: 11400000, guid: a01834a1dff6b8a4da0add0b6aa72f84, type: 2}
-  projectilePool: {fileID: 11400000, guid: 4e4864ca9534c6f41a5e8d6f2f1e6afd, type: 2}
+  projectilePool: {fileID: 11400000, guid: c8f0150fec9b9c647b6628f4abcef5e0, type: 2}
   durability:
     health: 150
     armor: 10
